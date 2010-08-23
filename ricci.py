@@ -30,7 +30,7 @@ class Ricci(tri.Triangulation):
         print "Iterations = " + str(iterations)
         print "Max curvature = " + str(supNorm(self.curvatures))
 
-    def ricciFlow(self, threshold=1.01e-5, maxIterations=15, hessType=0, supTest=True):
+    def ricciFlow(self, threshold=1.01e-9, maxIterations=15, hessType=0, supTest=True):
         """ Use Newton's conjugate gradient method to find 0 curvature metric.
         """
         # initialize data
