@@ -2,7 +2,7 @@
 
 import geodesic
 import numpy as np
-#import triangulate as tri
+import triangulate as tri
 import waveFront
 import ricci
 
@@ -16,7 +16,6 @@ def main(fileName):
     runWaves(face, 4, stepSize = 0.002, steps=2500)
 
 def runWaves(face, antNumber, stepSize=0.01, steps=1000, source=None):
-    isinstance(face, ricci.Ricci)
     front = waveFront.WaveFront(face, antNumber, stepSize, steps)
     collisions =  front.calcCollisionGraph(source)
     print "Vertex list"
