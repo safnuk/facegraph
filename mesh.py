@@ -78,6 +78,9 @@ class Mesh:
     def __init__(self, points, faces, radii=None, edgeInfo=None):
 
         self.faces = np.array(faces)		# data structure used to display surface with mlab
+
+        # initialize data arrays in preparation for moving information into
+        # the class
         self.x = np.empty(len(points))
         self.y = np.empty(len(points))
         self.z = np.empty(len(points))
@@ -85,6 +88,11 @@ class Mesh:
         self.edges = []
         self.triangles = []
 
+        for index, point in enumerate(points):
+            self.vertices.append(Vertex())
+            self.x[index] = point[0]
+            self.y[index] = point[1]
+            self.z[index] = point[2]
 class VertexIndexError(Exception):
     def __init__(self, value):
         self.value = value
