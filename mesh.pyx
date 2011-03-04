@@ -145,14 +145,14 @@ cdef class Mesh:
 
         edge_index = 0
         for triangle_index in range(len(faces)):
-            face = faces[index]
+            face = faces[triangle_index]
             for i in range(3):
                 vertex_list[i] = <int>face[i]
             triangle = Triangle(<int>face[0], <int>face[1], <int>face[2])
             self.triangles.append(triangle)
             self._add_incident_triangle(triangle_index, vertex_list)
-            #edge_index = self._create_new_edges(edge_index, triangle_index,
-            #                                    vertex_list)
+            edge_index = self._create_new_edges(edge_index, triangle_index,
+                                                vertex_list)
 
     cdef _add_incident_triangle(self, int triangle_index, int *vertex_list):
         """ Adds incidence data of triangle to vertices listed in
@@ -183,41 +183,42 @@ cdef class Mesh:
         cdef int edge_position
         cdef Vertex vertex1, vertex2
         cdef Edge edge
+        cdef Triangle triangle
 
         edge_ref = -1
-        #for i in range(3):
-        #    vertex1_index = vertex_list[i]
-        #    vertex2_index = vertex_list[(i+1) % 3]
-        #    vertex1 = self.vertices[vertex1_index]
-        #    vertex2 = self.vertices[vertex2_index]
-        #    duplicate = False
-        #    for j in range(vertex2.degree):
-        #        if vertex2.incident_vertices[j] == vertex1_index:
-        #            duplicate = True
-        #            edge_ref = vertex2.incident_edges[j]
-        #    if not duplicate:
-        #        edge_ref = edge_index
-        #        edge_index += 1
-        #        # create new edge
-        #        edge = Edge(vertex1_index, vertex2_index)
-        #        edge.incident_triangles[0] = triangle_index
-        #        self.edges.append(edge)
-        #        # record incidence data of vertices
-        #        vertex1.incident_vertices[vertex1.degree] = vertex2_index
-        #        vertex1.incident_edges[vertex1.degree] = edge_ref
-        #        vertex1.degree += 1
-        #        vertex1.boundary += 1
-        #        vertex2.incident_vertices[vertex2.degree] = vertex1_index
-        #        vertex2.incident_edges[vertex2.degree] = edge_ref
-        #        vertex2.degree += 1
-        #        vertex2.boundary += 1
-        #    else:
-        #        edge = self.edges[edge_ref]
-        #        edge.incident_triangles[1] = triangle_index
-        #    # add edge ref to triangle
-        #    edge_position = (i+2) % 3
-        #    self.triangles[triangle_index].edges[edge_position] = \
-        #        edge_ref
+        for i in range(3):
+            vertex1_index = vertex_list[i]
+            vertex2_index = vertex_list[(i+1) % 3]
+            vertex1 = self.vertices[vertex1_index]
+            vertex2 = self.vertices[vertex2_index]
+            duplicate = False
+            for j in range(vertex2.degree):
+                if vertex2.incident_vertices[j] == vertex1_index:
+                    duplicate = True
+                    edge_ref = vertex2.incident_edges[j]
+            if not duplicate:
+                edge_ref = edge_index
+                edge_index += 1
+                # create new edge
+                edge = Edge(vertex1_index, vertex2_index)
+                edge.incident_triangles[0] = triangle_index
+                self.edges.append(edge)
+                # record incidence data of vertices
+                vertex1.incident_vertices[vertex1.degree] = vertex2_index
+                vertex1.incident_edges[vertex1.degree] = edge_ref
+                vertex1.degree += 1
+                vertex1.boundary += 1
+                vertex2.incident_vertices[vertex2.degree] = vertex1_index
+                vertex2.incident_edges[vertex2.degree] = edge_ref
+                vertex2.degree += 1
+                vertex2.boundary += 1
+            else:
+                edge = self.edges[edge_ref]
+                edge.incident_triangles[1] = triangle_index
+            # add edge ref to triangle
+            edge_position = (i+2) % 3
+            triangle = self.triangles[triangle_index]
+            triangle.edges[edge_position] = edge_ref
         return edge_index
 
 class VertexIndexError(Exception):
