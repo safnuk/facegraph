@@ -2,145 +2,42 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include "cfile_io.h"
+#include "cmesh.h"
 
-#define max_degree  15
 
-/* Struct which encodes incidence data at a vertex. The list of
- * incident vertices should be in alignment with the list of incident
- * edges. i.e. the first incident vertex should be connected to
- * the current vertex by the first incident edge, and so on.
- *
- * degree is the number of incident edges and vertices
- * degree - bounday is the number of incident triangles,
- * so boundary is 1 if vertex in on the boundary, 0 otherwise.
- *
- * TODO: Make lists respect inherent cyclic ordering.
- */
-typedef struct {
-        int degree;    
-        int boundary;
-        void *incident_vertices[max_degree];
-        void *incident_triangles[max_degree];
-        void *incident_edges[max_degree];
-        int index;
-} vertex;
 
-/* Struct for encoding edge connectivity. Vertices are the indices to
- * the two endpoints of the edge. If vertices are listed in the order
- * (i, j), then triangle 1 should be on the left when traveling from 
- * left to right. i.e. it agrees with the ordering of triangle 1, 
- * and is opposite to the ordering of triangle 2 (if the edge is 
- * interior).
- */
-typedef struct {
-        void *vertices[2];
-        void *incident_triangles[2];
-        int index;
-} edge;
-
-// int get_other_vertex(edge *e, vertex *v);
-
-/* Triangle struct used to encode connectivity structure.
- * Vertices should be a counter-clockwise list of indices.
- * Edge indices are also listed counter-clockwise, with the
- * edge being opposite to the vertex.
- *
- * i.e. if a triangle has vertices a, b, c with opposite 
- * edges A, B, C, then vertices listed in the order (a, b, c) 
- * means edges should be listed in the order (A, B, C)
- */
-typedef struct {
-        void *vertices[3];
-        void *edges[3];
-        int index;
-} triangle;
-
-/* Struct recording the (x, y, z) coordinates of a point.
- * This is mostly to avoid having to allocate 2D arrays.
- */
-typedef struct {
-        float x;
-        float y;
-        float z;
-} point;
-
-/* Struct encoding incidence data of a triangulated surface.
- * All cross references (eg incident_vertices in a vertex) are
- * indices to the arrays of objects.
- *
- * ranks is the numbers of vertices, edges and triangles.
- * coordinates is an array of (x,y,z) triples giving the
- * position of each vertex.
- *
- * TODO: Check triangulation data for
- *      - isolated vertices
- *      - bivalent vertices
- *      - improvable trivalent and quadvalent vertices
- */
-typedef struct {
-        int ranks[3];  // ranks of i-th chain groups
-        vertex *vertices;
-        edge *edges;
-        triangle *triangles;
-        point *coordinates;
-} mesh;
-
-int initialize_mesh(mesh *m, float points[][3], int faces[][3],
-                int number_of_points, int number_of_triangles);
-void deallocate_mesh(mesh *m);
-void add_indices(mesh *m);
-void print_mesh(mesh *m);
-void print_vertex(vertex *v);
-void print_edge(edge *e);
-void print_triangle(triangle *t);
-void copy_points(float points[][3], mesh *m);
-void construct_triangles(int faces[][3], mesh *m);
-int construct_edges(mesh *m);
-void * get_incident_edge(vertex *v1, vertex *v2);
-void add_incident_vertices_and_edge(vertex *v1, vertex *v2, edge *e);
-int valid_pointers(mesh *m);
-
-int main()
-{
-        int i;
-        vertex v;
-        mesh m;
-        float points[7][3] ={ 1,1,1, 1,1,1, 1,1,1,
-              1,1,1, 1,1,1, 1,1,1, 1,1,1};
-        int faces[6][3] = { 0,3,1, 1,3,2, 2,3,4, 2,4,5,
-            0,6,3, 3,6,4};
-        initialize_mesh(&m, points, faces, 7,  6);
-        print_mesh(&m);
-        deallocate_mesh(&m);
-}
-
-/* Given an array of point coordinates, and triples of points
- * which form triangles, the function calculates all incidence 
+/* Given a filedata structure (read from a .mesh file), 
+ * the function calculates all incidence 
  * relations for the mesh data struct.
  *
  * Point triples in a face should be listed in counter-clockwise
  * order, and are indices to the inherited order from the points
  * array.
  */
-int initialize_mesh(mesh *m, float points[][3], int faces[][3],
-                int number_of_points, int number_of_triangles)
+int initialize_mesh(mesh *m, filedata *fd)
 {
-        int max_number_of_edges = number_of_points + number_of_triangles; 
+        int max_number_of_edges = fd->number_of_points +
+                fd->number_of_triangles + 10; 
         int edge_count = 0;
-        m->ranks[0] = number_of_points;
-        m->ranks[2] = number_of_triangles;
-        m->vertices = (vertex*) malloc(number_of_points * sizeof(vertex));
+        m->ranks[0] = fd->number_of_points;
+        m->ranks[2] = fd->number_of_triangles;
+        m->vertices = (vertex*) malloc(m->ranks[0] * sizeof(vertex));
         m->edges = (edge*) malloc(max_number_of_edges * sizeof(edge));
-        m->triangles = (triangle*) malloc(number_of_triangles * 
-                        sizeof(triangle));
-        m->coordinates = malloc(number_of_points * sizeof(point));
+        m->triangles = (triangle*) malloc(m->ranks[2] * sizeof(triangle));
+        m->coordinates = (point*)malloc(m->ranks[0] * sizeof(point));
+        m->edge_lengths = (float*)malloc(max_number_of_edges *
+                        sizeof(float)); 
+        m->circle_angles = (float*)malloc(max_number_of_edges *
+                        sizeof(float)); 
+        m->radii = (float*)malloc(m->ranks[0] * sizeof(float));
         if (!valid_pointers(m)) {
                 printf("Memory allocation failure!\n Goodbye.\n");
                 deallocate_mesh(m);
                 exit;
         }
-        copy_points(points, m);
-        construct_triangles(faces, m);
+        copy_points(fd->point_head, m);
+        construct_triangles(fd->face_head, m);
         edge_count = construct_edges(m);
         m->ranks[1] = edge_count;
         add_indices(m);
@@ -156,13 +53,16 @@ void deallocate_mesh(mesh *m) {
 /* Copy array of (x,y,z) coordinate data into mesh's
  * coordinates array.
  */
-void copy_points(float points[][3], mesh *m)
+void copy_points(_point *head, mesh *m)
 {
-        int i;
-        for (i=0; i < m->ranks[0]; i++) {
-                m->coordinates[i].x = points[i][0];
-                m->coordinates[i].y = points[i][1];
-                m->coordinates[i].z = points[i][2];
+        _point *node = head;
+        int i = 0;
+        while (node->next != NULL) {
+                node = node->next;
+                m->coordinates[i].x = node->x;
+                m->coordinates[i].y = node->y;
+                m->coordinates[i].z = node->z;
+                i++;
         }
 }
 
@@ -170,21 +70,26 @@ void copy_points(float points[][3], mesh *m)
 /* Initializes triangle data for mesh, and adds incidence data 
  * to vertices.
  */
-void construct_triangles(int faces[][3], mesh *m)
+void construct_triangles(face *head, mesh *m)
 {
-        int i, j, ti;
+        int i=0; 
+        int j, ti;
         triangle *t;
         vertex *v;
-        for (i=0; i < m->ranks[2]; i++) {
+        face *node = head;
+
+        while (node->next != NULL) {
+                node = node->next;
                 t = &(m->triangles[i]);
                 for (j=0; j<3; j++) {
                         // Add incidence data to vertex and triangle
-                        v = &(m->vertices[faces[i][j]]);
+                        v = &(m->vertices[node->v[j]]);
                         ti = v->degree - v->boundary;
                         v->incident_triangles[ti] = (void *)t;
                         (v->boundary)--;
                         t->vertices[j] = (void *)v;
                 }
+                i++;
         }
 }
 
@@ -269,6 +174,12 @@ int valid_pointers(mesh *m)
                 return 0;
         if (m->coordinates == NULL)
                 return 0;
+        if (m->edge_lengths == NULL)
+                return 0;
+        if (m->radii == NULL)
+                return 0;
+        if (m->circle_angles == NULL)
+                return 0;
         return 1;
 }
 
@@ -328,6 +239,10 @@ void print_mesh(mesh *m)
         for (i=0; i < m->ranks[2]; i++) {
                 print_triangle(&(m->triangles[i]));
         }
+        printf("Ranks = (%i, %i, %i)", m->ranks[0],
+                        m->ranks[1], m->ranks[2]);
+        printf("  Euler = %i\n", m->ranks[0] - 
+                        m->ranks[1] + m->ranks[2]);
 }
 
 void print_vertex(vertex *v) 

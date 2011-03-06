@@ -4,56 +4,9 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include "cfile_io.h"
 
-/* Data structure for a linked list of point coordinates.
- */
-typedef struct _point {
-        float x, y, z;
-        struct _point *next;
-} point;
 
-/* Data structure for a linked list of faces (triangles).
- */
-typedef struct _face {
-        int v[3];
-        struct _face *next;
-} face;
-
-/* Data structure used to record data from a .mesh file.
- * point_head and face_head are heads of linked lists
- * for vertices and faces. Any filedata object should
- * always be initialized before use (with initialize_filedata), 
- * and deallocated after finished (with deallocate_filedata).  
- */
-typedef struct {
-        int number_of_points;
-        int number_of_triangles;
-        point *point_head;
-        face *face_head;
-} filedata; 
-
-point *add_point_node(point *node, float x, float y, float z);
-face *add_face_node(face *node, int v1, int v2, int v3);
-point *parse_new_point(point *point_node, char *line, int point_count);
-face *parse_new_face(face *face_node, char *line, int face_count);
-int read(char *filename, filedata *data);
-void initialize_filedata(filedata *data);
-void deallocate_filedata(filedata *data);
-void deallocate_point(point *head);
-void deallocate_face(face *head);
-void print_filedata(filedata *data);
-
-int main(int argc, char *argv[]) {
-        filedata data;
-        if ( argc != 2 ) {
-                printf( "usage: %s filename\n", argv[0] );
-                return 0;
-        }
-        initialize_filedata(&data);
-        read(argv[1], &data);
-        print_filedata(&data);
-        deallocate_filedata(&data);
-}
 
 /* Read face data from filename, and store it in data.
  * Assumes that data has been properly initialized.
@@ -64,7 +17,7 @@ int read(char *filename, filedata* data)
         FILE *fp;
         int point_count = 0;
         int face_count = 0;
-        point *point_node = data->point_head;
+        _point *point_node = data->point_head;
         face *face_node = data->face_head;
 
         fp = fopen(filename, "r");
@@ -91,10 +44,10 @@ int read(char *filename, filedata* data)
 
 /* Allocate a new point and add to tail of linked list.
  */
-point *add_point_node(point *node, float x, float y, float z)
+_point *add_point_node(_point *node, float x, float y, float z)
 {
-        point *new_node;
-        new_node = (point*)malloc(sizeof(point));
+        _point *new_node;
+        new_node = (_point*)malloc(sizeof(_point));
         if (new_node == NULL) {
                 printf("Could not allocate memory for new point.\n");
                 exit(1);
@@ -130,7 +83,7 @@ face *add_face_node(face *node, int v1, int v2, int v3)
  *      "Vertex index x y z [radius]"
  * The optional radius value is from a circle packing metric.
  */
-point *parse_new_point(point* point_node, char *line, int point_count) 
+_point *parse_new_point(_point* point_node, char *line, int point_count) 
 {
         float x, y, z;
         float radius;
@@ -165,7 +118,7 @@ face *parse_new_face(face *face_node, char *line, int face_count)
 
 void initialize_filedata(filedata *data)
 {
-        data->point_head = (point*)malloc(sizeof(point));
+        data->point_head = (_point*)malloc(sizeof(_point));
         data->face_head = (face*)malloc(sizeof(face));
         data->point_head->next = NULL;
         data->face_head->next = NULL;
@@ -179,7 +132,7 @@ void deallocate_filedata(filedata *data)
         data->face_head = NULL;
 }
 
-void deallocate_point(point *node)
+void deallocate_point(_point *node)
 {
         if (node->next != NULL) {
                 deallocate_point(node->next);
@@ -197,7 +150,7 @@ void deallocate_face(face *node)
 
 void print_filedata(filedata *data) 
 {
-        point *point_node = data->point_head->next;
+        _point *point_node = data->point_head->next;
         face *face_node = data->face_head->next;       
         while (point_node != NULL) {
                 printf("V(%f, %f, %f)\n", point_node->x,
