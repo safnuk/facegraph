@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 #include "cfile_io.h"
 #include "cmesh.h"
 
@@ -127,6 +128,28 @@ int construct_edges(mesh *m)
         }
         return edge_count;
 }
+
+/* returns the coordinate location of vertex v
+ */
+point* get_coordinate(mesh *m, vertex *v)
+{
+        int i = v->index;
+        return &(m->coordinates[i]);
+}
+
+float calc_distance(point *p1, point *p2)
+{
+        float diff;
+        float sum;
+        diff = p1->x - p2->x;
+        sum = diff * diff;
+        diff = p1->y - p2->y;
+        sum += diff * diff;
+        diff = p1->z - p2->z;
+        sum += diff * diff;
+        return sqrt(sum);
+}
+
 
 // TODO: Update comment.
 /* Checks to see if vertices v1 and v2 have been previously found

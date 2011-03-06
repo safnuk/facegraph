@@ -81,18 +81,25 @@ typedef struct {
         edge *edges;
         triangle *triangles;
         point *coordinates;
+        float *edge_lengths;
+        float *radii;
+        float *circle_angles;
 } mesh;
 
 int initialize_mesh(mesh *m, filedata *fd);
 void deallocate_mesh(mesh *m);
 void add_indices(mesh *m);
-void print_mesh(mesh *m);
-void print_vertex(vertex *v);
-void print_edge(edge *e);
-void print_triangle(triangle *t);
 void copy_points(_point *head, mesh *m);
 void construct_triangles(face *head, mesh *m);
 int construct_edges(mesh *m);
 void *get_incident_edge(vertex *v1, vertex *v2);
 void add_incident_vertices_and_edge(vertex *v1, vertex *v2, edge *e);
 int valid_pointers(mesh *m);
+
+point* get_coordinate(mesh *m, vertex *v);
+float calc_distance(point *p1, point *p2);
+
+void print_mesh(mesh *m);
+void print_vertex(vertex *v);
+void print_edge(edge *e);
+void print_triangle(triangle *t);
