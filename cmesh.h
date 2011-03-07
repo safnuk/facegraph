@@ -57,9 +57,9 @@ typedef struct {
  * This is mostly to avoid having to allocate 2D arrays.
  */
 typedef struct {
-        float x;
-        float y;
-        float z;
+        double x;
+        double y;
+        double z;
 } point;
 
 /* Struct encoding incidence data of a triangulated surface.
@@ -81,9 +81,9 @@ typedef struct {
         edge *edges;
         triangle *triangles;
         point *coordinates;
-        float *edge_lengths;
-        float *radii;
-        float *circle_angles;
+        double *edge_lengths;
+        double *radii;
+        double *circle_angles;
 } mesh;
 
 int initialize_mesh(mesh *m, filedata *fd);
@@ -97,7 +97,7 @@ void add_incident_vertices_and_edge(vertex *v1, vertex *v2, edge *e);
 int valid_pointers(mesh *m);
 
 point* get_coordinate(mesh *m, vertex *v);
-float calc_distance(point *p1, point *p2);
+double calc_distance(point *p1, point *p2);
 
 void print_mesh(mesh *m);
 void print_vertex(vertex *v);

@@ -5,10 +5,10 @@
 #include "cmesh.h"
 #include "ccirclepack.h"
 
-float calc_circlepack_metric(mesh *m)
+double calc_circlepack_metric(mesh *m)
 {
-        float *ambient_lengths;
-        ambient_lengths = (float *)malloc(m->ranks[1] *sizeof(float));
+        double *ambient_lengths;
+        ambient_lengths = (double *)malloc(m->ranks[1] *sizeof(double));
         if (ambient_lengths == NULL) {
                 printf("Memory allocation error");
                 exit(1);
@@ -20,7 +20,7 @@ float calc_circlepack_metric(mesh *m)
         free(ambient_lengths)
 }
 
-void calc_ambient_edge_lengths(mesh *m, float *edge_lengths)
+void calc_ambient_edge_lengths(mesh *m, double *edge_lengths)
 {
         int i;
         point *v1, *v2;
@@ -32,6 +32,6 @@ void calc_ambient_edge_lengths(mesh *m, float *edge_lengths)
         }
 }
 
-void calc_initial_radii(mesh *m, float *edge_lengths)
+void calc_initial_radii(mesh *m, double *edge_lengths)
 {
 }

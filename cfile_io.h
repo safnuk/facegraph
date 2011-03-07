@@ -4,7 +4,7 @@
 /* Data structure for a linked list of point coordinates.
  */
 typedef struct _point_tmp {
-        float x, y, z;
+        double x, y, z;
         struct _point_tmp *next;
 } _point;
 
@@ -28,7 +28,7 @@ typedef struct {
         face *face_head;
 } filedata; 
 
-_point *add_point_node(_point *node, float x, float y, float z);
+_point *add_point_node(_point *node, double x, double y, double z);
 face *add_face_node(face *node, int v1, int v2, int v3);
 _point *parse_new_point(_point *point_node, char *line, int point_count);
 face *parse_new_face(face *face_node, char *line, int face_count);

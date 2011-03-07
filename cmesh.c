@@ -27,11 +27,11 @@ int initialize_mesh(mesh *m, filedata *fd)
         m->edges = (edge*) malloc(max_number_of_edges * sizeof(edge));
         m->triangles = (triangle*) malloc(m->ranks[2] * sizeof(triangle));
         m->coordinates = (point*)malloc(m->ranks[0] * sizeof(point));
-        m->edge_lengths = (float*)malloc(max_number_of_edges *
-                        sizeof(float)); 
-        m->circle_angles = (float*)malloc(max_number_of_edges *
-                        sizeof(float)); 
-        m->radii = (float*)malloc(m->ranks[0] * sizeof(float));
+        m->edge_lengths = (double*)malloc(max_number_of_edges *
+                        sizeof(double)); 
+        m->circle_angles = (double*)malloc(max_number_of_edges *
+                        sizeof(double)); 
+        m->radii = (double*)malloc(m->ranks[0] * sizeof(double));
         if (!valid_pointers(m)) {
                 printf("Memory allocation failure!\n Goodbye.\n");
                 deallocate_mesh(m);
@@ -137,10 +137,10 @@ point* get_coordinate(mesh *m, vertex *v)
         return &(m->coordinates[i]);
 }
 
-float calc_distance(point *p1, point *p2)
+double calc_distance(point *p1, point *p2)
 {
-        float diff;
-        float sum;
+        double diff;
+        double sum;
         diff = p1->x - p2->x;
         sum = diff * diff;
         diff = p1->y - p2->y;

@@ -44,7 +44,7 @@ int read(char *filename, filedata* data)
 
 /* Allocate a new point and add to tail of linked list.
  */
-_point *add_point_node(_point *node, float x, float y, float z)
+_point *add_point_node(_point *node, double x, double y, double z)
 {
         _point *new_node;
         new_node = (_point*)malloc(sizeof(_point));
@@ -85,8 +85,8 @@ face *add_face_node(face *node, int v1, int v2, int v3)
  */
 _point *parse_new_point(_point* point_node, char *line, int point_count) 
 {
-        float x, y, z;
-        float radius;
+        double x, y, z;
+        double radius;
         int index;
 
         sscanf(line, "Vertex %i %f %f %f %f",
