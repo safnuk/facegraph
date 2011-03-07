@@ -50,6 +50,9 @@ void deallocate_mesh(mesh *m) {
         free(m->edges);
         free(m->triangles);
         free(m->coordinates);
+        free(m->edge_lengths);
+        free(m->circle_angles);
+        free(m->radii);
 }
 /* Copy array of (x,y,z) coordinate data into mesh's
  * coordinates array.
@@ -250,6 +253,12 @@ void print_mesh(mesh *m)
 {
         int i;
 
+        printf("==== Coordinates ====\n");
+        for (i=0; i < m->ranks[0]; i++) {
+                printf("[%i]", i);
+                print_coordinate(&(m->coordinates[i]));
+                printf("\n");
+        }
         printf("==== Vertices ====\n");
         for (i=0; i < m->ranks[0]; i++) {
                  print_vertex(&(m->vertices[i]));
@@ -266,6 +275,11 @@ void print_mesh(mesh *m)
                         m->ranks[1], m->ranks[2]);
         printf("  Euler = %i\n", m->ranks[0] - 
                         m->ranks[1] + m->ranks[2]);
+}
+
+void print_coordinate(point *p)
+{
+        printf("(%f, %f, %f)  ", p->x, p->y, p->z);
 }
 
 void print_vertex(vertex *v) 

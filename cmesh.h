@@ -100,6 +100,7 @@ point* get_coordinate(mesh *m, vertex *v);
 double calc_distance(point *p1, point *p2);
 
 void print_mesh(mesh *m);
+void print_coordinate(point *p);
 void print_vertex(vertex *v);
 void print_edge(edge *e);
 void print_triangle(triangle *t);

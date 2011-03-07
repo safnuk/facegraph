@@ -2,6 +2,7 @@
 //
 #include <stdlib.h>
 #include <stdio.h>
+#include <lbfgs.h>
 #include "cfile_io.h"
 #include "cmesh.h"
 #include "ccirclepack.h"
@@ -17,7 +18,7 @@ int main(int argc, char *argv[]) {
         read(argv[1], &data);
         initialize_mesh(&m, &data);
         deallocate_filedata(&data);
-        print_mesh(&m);
+        // print_mesh(&m);
         calc_circlepack_metric(&m);
         deallocate_mesh(&m);
 }

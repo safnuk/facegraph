@@ -86,15 +86,18 @@ face *add_face_node(face *node, int v1, int v2, int v3)
 _point *parse_new_point(_point* point_node, char *line, int point_count) 
 {
         double x, y, z;
-        double radius;
+        float tx, ty, tz, tr;
         int index;
 
         sscanf(line, "Vertex %i %f %f %f %f",
-                        &index, &x, &y, &z, &radius);
+                        &index, &tx, &ty, &tz, &tr);
         if (point_count != index) {
                 printf("Index mismatch when reading vertex %i", index);
                 exit(1);
         }
+        x = (double)tx;
+        y = (double)ty;
+        z = (double)tz;
         return add_point_node(point_node, x, y, z);
 }
 
