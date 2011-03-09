@@ -9,9 +9,11 @@
 int B(double *x, double *y, int n, void* instance)
 {
         int i, j;
-        double M[2][2] = {
-                2, 1,
-                1, 3
+        double M[4][4] = {
+                4, 1, -1, 0.5,
+                1, 3, -0.25, 0.2,
+                -1, -0.25, 5, 0,
+                0.5, 0.2, 0, 2
         };
         for (i=0; i<n; i++) {
                 y[i] = 0;
@@ -24,16 +26,24 @@ int B(double *x, double *y, int n, void* instance)
 
 int main(int argc, char *argv[])
 {
-        double x[2] = {0, 0};
-        double b[2];
+        double x[4] = {0, 0, 0, 0};
+        double b[4];
+        float tmp;
 
-        if (argc != 3) {
-                printf("  usage: %s x1 x2\n", argv[0]);
+        if (argc != 5) {
+                printf("  usage: %s b1 b2 b3 b4\n", argv[0]);
                 return 0;
         }
-        (double)sscanf(argv[1], "%f", &(x[0]));
-        (double)sscanf(argv[2], "%f", &(x[1]));
-        conjugate_gradient(&B, x, b, 0.0001, 2, NULL);
+        (double)sscanf(argv[1], "%f", &tmp);
+        b[0] = tmp;
+        (double)sscanf(argv[2], "%f", &tmp);
+        b[1] = tmp;
+        (double)sscanf(argv[3], "%f", &tmp);
+        b[2] = tmp;
+        (double)sscanf(argv[4], "%f", &tmp);
+        b[3] = tmp;
+        cg_solve(&B, x, b, 0.0001, 4, 5, NULL);
+        printf("x = [%f, %f, %f, %f]\n", x[0], x[1], x[2], x[3]);
         return 0;
 }
 /* Uses conjugate gradient method to approximately solve the equation
@@ -52,16 +62,15 @@ int main(int argc, char *argv[])
  *
  * instance is a pointer to user-defined data which is used by A.
  */
-int conjugate_gradient(int A(double *, double *, int, void *), 
-                double *x, double *b, double max_error, 
-                int n, void *instance)
+void cg_solve(int (*A)(double *, double *, int, void *), 
+                double *x, double *b, double tolerance, 
+                int n, int max_iterations, void *instance)
 {
+        int i;
         double *r0, *r1, *p, *Ap;
         int k = 0;
         double alpha, beta;
-        error_squared = max_error * max_error;
-        double r1_squared = error_squared + 1;
-        double r0_squared;
+        double r1_squared, r0_squared, initial_residue;
         r0 = (double *)malloc(n * sizeof(double));
         r1 = (double *)malloc(n * sizeof(double));
         p = (double *)malloc(n * sizeof(double));
@@ -75,27 +84,92 @@ int conjugate_gradient(int A(double *, double *, int, void *),
         scale_and_add(r0, b, -1, Ap, n); // r0 = b- A(x)
         copy_vector(p, r0, n); // p = r0
         A(p, Ap, n, instance);  // Ap = A(p);
-        while (r1_squared > error_squared) {
+        r0_squared = dot(r0, r0, n);
+        initial_residue = r0_squared;
+        while (r0_squared > tolerance * initial_residue && k < max_iterations) {
                 k++;
-                r0_squared = dot(r0, r0, n); 
                 alpha = r0_squared / dot(p, Ap, n);
                 scale_and_add(x, x, alpha, p, n); // x = x + alpha p
                 scale_and_add(r1, r0, -1*alpha, Ap, n); // r1=r0-alpha A(p)
                 r1_squared = dot(r1, r1, n);
-                if (r1_squared > max_error) {
+                if (r1_squared > tolerance * initial_residue) {
                         beta = r1_squared / r0_squared;
                         scale_and_add(p, r1, beta, p, n); // p= r1 + beta p
                         swap(&r0, &r1); // r1 becomes r0, freeing 
                                       // r1 for next run
                         A(p, Ap, n, instance); // Ap = A(p)
                 }
-                printf("Iteration: %i  Error squared: %f\n", k, r1_squared);
+                r0_squared = r1_squared;
+                printf("Iteration: %i  Error squared: %f, x = [", k, r1_squared);
+                for (i=0; i<n; i++) {
+                        printf("%f, ", x[i]);
+                }
+                printf("]\n");
         }
         free(Ap);
         free(p);
         free(r1);
         free(r0);
-        return 0;
+}
+
+/* Same as cg_solve, except it used the Jacobi
+ * preconditioner (scales A by the inverse of its
+ * diagonal elements).
+ *
+ * Callback function inv_diag should compute the vector
+ * of the inverses of the diagonal elements of A.
+ */
+void pccg_solve(int (*A)(double *, double *, int, void *),
+               int (*inv_diag)(double *, int, void *), 
+                double *x, double *b, double tolerance, 
+                int n, int max_iterations, void *instance)
+{
+        int i;
+        double *r0, *r1, *p, *Ap, *precon;
+        int k = 0;
+        double alpha, beta;
+        double r1_squared, r0_squared, initial_residue;
+        r0 = (double *)malloc(n * sizeof(double));
+        r1 = (double *)malloc(n * sizeof(double));
+        p = (double *)malloc(n * sizeof(double));
+        Ap = (double *)malloc(n * sizeof(double));
+        precon = (double *)malloc(n * sizeof(double));
+        if(!r0 || !r1 || !p || !Ap || !precon) {
+                printf("Memory allocation error.\n");
+                exit(1);
+        }
+        
+        initialize_preconditioner(precon, A, n, instance);
+        A(x, Ap, n, instance); // Ap = A(x)
+        scale_and_add(r0, b, -1, Ap, n); // r0 = b- A(x)
+        copy_vector(p, r0, n); // p = r0
+        A(p, Ap, n, instance);  // Ap = A(p);
+        r0_squared = dot(r0, r0, n);
+        initial_residue = r0_squared;
+        while (r0_squared > tolerance * initial_residue && k < max_iterations) {
+                k++;
+                alpha = r0_squared / dot(p, Ap, n);
+                scale_and_add(x, x, alpha, p, n); // x = x + alpha p
+                scale_and_add(r1, r0, -1*alpha, Ap, n); // r1=r0-alpha A(p)
+                r1_squared = dot(r1, r1, n);
+                if (r1_squared > tolerance * initial_residue) {
+                        beta = r1_squared / r0_squared;
+                        scale_and_add(p, r1, beta, p, n); // p= r1 + beta p
+                        swap(&r0, &r1); // r1 becomes r0, freeing 
+                                      // r1 for next run
+                        A(p, Ap, n, instance); // Ap = A(p)
+                }
+                r0_squared = r1_squared;
+                printf("Iteration: %i  Error squared: %f, x = [", k, r1_squared);
+                for (i=0; i<n; i++) {
+                        printf("%f, ", x[i]);
+                }
+                printf("]\n");
+        }
+        free(Ap);
+        free(p);
+        free(r1);
+        free(r0);
 }
 
 /* Calculates the vector sum
@@ -114,7 +188,7 @@ void scale_and_add(double *x, double *b, double alpha, double *c, int n)
 /* Calculates the dot product of vectors x and y, and returns
  * the result. Note that x and y need to be arrays of length n.
  */
-void dot(double *x, double *y, int n)
+double dot(double *x, double *y, int n)
 {
         int i;
         double sum = 0;
@@ -135,4 +209,15 @@ void swap(double **ptr_r0, double **ptr_r1)
         double *tmp = *ptr_r0;
         *ptr_r0 = *ptr_r1;
         *ptr_r1 = tmp;
+}
+
+/* Copies vector y into vector x. Assumes that both
+ * x and y are arrays of length n.
+ */
+void copy_vector(double *x, double *y, int n)
+{
+        int i;
+        for (i=0; i<n; i++) {
+                x[i] = y[i];
+        }
 }
