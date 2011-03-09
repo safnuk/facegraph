@@ -7,7 +7,8 @@
 #include "cmesh.h"
 #include "ccirclepack.h"
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[]) 
+{
         filedata data;
         mesh m;
         if ( argc != 2 ) {
