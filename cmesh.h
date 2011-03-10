@@ -8,14 +8,14 @@
  * edges. i.e. the first incident vertex should be connected to
  * the current vertex by the first incident edge, and so on.
  *
+ * Also, all incidence data is cyclically ordered (counterclockwise).
+ *
  * degree is the number of incident edges and vertices
  * degree - bounday is the number of incident triangles,
  * so boundary is 1 if vertex in on the boundary, 0 otherwise.
  *
- * v = (e^r - 1) / (e^r + 1), where r is the radius from the circle
+ * s = (e^r - 1) / (e^r + 1), where r is the radius from the circle
  * packing metric.
- *
- * TODO: Make lists respect inherent cyclic ordering.
  */
 typedef struct {
         int degree;    
@@ -24,7 +24,7 @@ typedef struct {
         void *incident_triangles[max_degree];
         void *incident_edges[max_degree];
         void *link_edges[max_degree];
-        double v;
+        double s;
         int index;
 } vertex;
 
@@ -116,6 +116,7 @@ int find_counterclockwise_edge(vertex *v, void *ie[], void *iv[]);
 void sort_incident_edges_and_vertices(vertex *v, void *ie[], void *iv[]);
 void sort_incident_triangles(vertex *v);
 void *get_common_triangle(edge *e1, edge *e2);
+void add_link_edges(mesh *m);
 point* get_coordinate(mesh *m, vertex *v);
 double calc_distance(point *p1, point *p2);
 

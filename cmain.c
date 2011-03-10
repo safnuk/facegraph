@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
         read(argv[1], &data);
         initialize_mesh(&m, &data);
         deallocate_filedata(&data);
-        // print_mesh(&m);
         calc_circlepack_metric(&m);
+        // print_mesh(&m);
         deallocate_mesh(&m);
 }

@@ -124,11 +124,10 @@ void record_output_in_mesh(optimizer *opt)
 void copy_radii(optimizer *opt)
 {
         int i;
+        vertex *v;
         for(i=0; i < opt->m->ranks[0]; i++) {
-                opt->m->radii[i] = (double) opt->r[i];
-                if (opt->r[i] <= 0) {
-                        printf("Vertex %i has radius %f\n", i, opt->r[i]);
-                }
+                v = &(opt->m->vertices[i]);
+                v->s = (exp(opt->r[i]) - 1) / (exp(opt->r[i]) + 1);
         }
 }
 
@@ -138,39 +137,44 @@ void copy_radii(optimizer *opt)
  * the circle packing metric as close as possible to 
  * the ambient metric.
  * 
- * This routine also calculates the induces ege lengths
+ * This routine also calculates the induced edge length
  * from the circle packing metric, and stores it in the
- * mesh struct (along with the intersection angles).
+ * edge struct (along with the intersection angle).
+ *
+ * Technically, what is stores is the cosine of the angle
+ * and the hyperbolic cosine of the length, as these are the
+ * natural parameters used for Ricci flow.
  */
 void calc_circle_angles(optimizer *opt)
 {
         int i, vi0, vi1;
         double r0, r1, l_bar, tmp;
         vertex *v0, *v1;
+        edge *e;
 
         for (i=0; i < opt->m->ranks[1]; i++) {
-                v0 = (vertex *)(opt->m->edges[i].vertices[0]);
-                v1 = (vertex *)(opt->m->edges[i].vertices[1]);
+                e = &(opt->m->edges[i]);
+                v0 = (vertex *)(e->vertices[0]);
+                v1 = (vertex *)(e->vertices[1]);
                 vi0 = v0->index;
                 vi1 = v1->index;
                 r0 = opt->r[vi0];
                 r1 = opt->r[vi1];
                 l_bar = opt->ambient_lengths[i];
                 if (l_bar >= r0 + r1) { // circles are tangent
-                        opt->m->edge_lengths[i] = r0 + r1;
-                        opt->m->circle_angles[i] = M_PI;
+                        e->cosh_length = cosh(r0 + r1);
+                        e->cos_angle = -1;
                 } else if (cosh(l_bar) <= cosh(r0) * cosh(r1)) { // maximum allowed overlap
-                        opt->m->edge_lengths[i] = acosh(cosh(r0) * cosh(r1));
-                        opt->m->circle_angles[i] = M_PI_2; // pi / 2
+                        e->cosh_length = cosh(r0) * cosh(r1);
+                        e->cos_angle = 0; // angle = pi / 2
                 } else { // arbitrary obtuse angle (no error)
-                        opt->m->edge_lengths[i] = l_bar;
+                        e->cosh_length = cosh(l_bar);
                         tmp = sinh(r0) * sinh(r1);
                         if (tmp != 0.0) {
-                                opt->m->circle_angles[i] = 
-                                        acos((cosh(r0) * cosh(r1) -
-                                                cosh(l_bar)) / tmp);
+                                e->cos_angle = 
+                                        ((cosh(r0) * cosh(r1) - cosh(l_bar)) / tmp);
                         } else {
-                                opt->m->circle_angles[i] = M_PI;
+                                e->cos_angle = 0;
                         }
                 }
         }

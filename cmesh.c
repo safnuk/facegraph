@@ -38,6 +38,7 @@ int initialize_mesh(mesh *m, filedata *fd)
         m->ranks[1] = edge_count;
         add_indices(m);
         sort_cyclic_order_at_vertices(m);
+        add_link_edges(m);
 }
 
 /* Free memory allocated in a previously initialized mesh. */
@@ -135,14 +136,14 @@ int construct_edges(mesh *m)
 void sort_cyclic_order_at_vertices(mesh *m)
 {
         vertex *v;
-        void *iv[MAX_DEGREE * 2 + 1];
-        void *ie[MAX_DEGREE * 2 + 1];
+        void *iv[max_degree * 2 + 1];
+        void *ie[max_degree * 2 + 1];
         int head, tail, i;
         
-        for (i=0; i < m->rank[0]; i++) {
+        for (i=0; i < m->ranks[0]; i++) {
                 v = &(m->vertices[i]);
-                head = MAX_DEGREE;
-                tail = MAX_DEGREE;
+                head = max_degree;
+                tail = max_degree;
                 ie[head] = v->incident_edges[0];
                 iv[head] = v->incident_vertices[0];
                 while (tail - head < v->degree-1) {
@@ -157,6 +158,32 @@ void sort_cyclic_order_at_vertices(mesh *m)
         }
 }
 
+/* Constructs the list of link edges around each vertex, with ordering agreeing
+ * with the existing cyclic ordering of the incident vertices, edges and
+ * triangles.
+ *
+ * Note that a link edge is not incident to the vertex, but shares a common
+ * triangle (so the union of all link edges of a vertex is a circle around the
+ * vertex).
+ */
+void add_link_edges(mesh *m)
+{
+        int i, j, k;
+        vertex *v;
+        triangle *t;
+        for (i=0; i < m->ranks[0]; i++) {
+                v = &(m->vertices[i]);
+                for (j=0; j < v->degree - v->boundary; j++) {
+                        t = (triangle *)(v->incident_triangles[j]);
+                        for (k=0; k<3; k++) {
+                                if (t->vertices[k] == v) {
+                                        v->link_edges[j] = t->edges[k];
+                                }
+                        }
+                }
+        }
+}
+
 /* Finds the edge incident to v, immediately clockwise from ie[0],
  * and records it in ie[-1]. Does the same for the vertices.
  * If there is no edge clockwise from ie[0] (it is on the boundary)
@@ -168,9 +195,9 @@ int find_clockwise_edge(vertex *v, void *ie[], void *iv[])
         edge *e = (edge *)ie[0];
         triangle *t;
         if (e->vertices[0] == v) {
-                t = (triangle *)(e->incident_triangles[0]);
-        } else {
                 t = (triangle *)(e->incident_triangles[1]);
+        } else {
+                t = (triangle *)(e->incident_triangles[0]);
         }
         if (!t) {
                 return 0;
@@ -199,9 +226,9 @@ int find_counterclockwise_edge(vertex *v, void *ie[], void *iv[])
         edge *e = (edge *)ie[0];
         triangle *t;
         if (e->vertices[0] == v) {
-                t = (triangle *)(e->incident_triangles[1]);
-        } else {
                 t = (triangle *)(e->incident_triangles[0]);
+        } else {
+                t = (triangle *)(e->incident_triangles[1]);
         }
         if (!t) {
                 return 0;
@@ -255,7 +282,7 @@ void *get_common_triangle(edge *e1, edge *e2)
         triangle *t;
         for (i=0; i<2; i++) {
                 t = (triangle *)(e1->incident_triangles[i]);
-                if (!t) {
+                if (t) {
                         for (j=0; j<3; j++) {
                                 if (t->edges[j] == e2)
                                         return (void *)t;
@@ -437,6 +464,12 @@ void print_vertex(vertex *v)
                 k= t->index;
                 printf(" %i ", k);
         }
+        printf("]  LE:[");
+        for (j=0; j < v->degree - v->boundary; j++) {
+                e = (edge *)(v->link_edges[j]);
+                k= e->index;
+                printf(" %i ", k);
+        }
         printf("] Deg:%i, Boundary:%i\n", v->degree, v->boundary);
 }
 
@@ -451,12 +484,13 @@ void print_edge(edge *e)
         t = e->incident_triangles[1];
         printf("(E%i) ", e->index);
         if (t == NULL) {
-                printf("V:[%i, %i]  T:[%i]\n", v1, v2, t1);
+                printf("V:[%i, %i]  T:[%i]", v1, v2, t1);
         }
         else {
                 t2 = ((triangle *)t)->index;
-                printf("V:[%i, %i]  T:[%i, %i]\n", v1, v2, t1, t2);
+                printf("V:[%i, %i]  T:[%i, %i]", v1, v2, t1, t2);
         }
+        printf(" (Cos(A), Cosh(L)) = (%f, %f)\n", e->cos_angle, e->cosh_length);
 }
 
 void print_triangle(triangle *t)
