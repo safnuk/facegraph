@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include "csimpson.h"
 
+/*
 double g(double x, void *instance)
 {
         return 4*x*x*x*x + 2/(x*x);
@@ -18,7 +19,7 @@ int main()
         result = integrate(&g, a, b, h, NULL);
         printf("Int(g, %f, %f) = %f  (dx=%f)\n", a, b, result, h);
 }
-
+*/
 
 /* Use Simpson's rule to estimate the integral of f over
  * the interval [a, b]. The subdivision used is an even number

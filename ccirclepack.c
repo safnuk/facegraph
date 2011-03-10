@@ -187,7 +187,7 @@ void calc_circle_angles(optimizer *opt)
  * induced by the circle packing metric (with vertex radii being the 
  * variables). 
  *
- * isinstance should be a pointer to the optimizer struct.
+ * instance should be a pointer to the optimizer struct.
  */
 static lbfgsfloatval_t evaluate(
     void *instance,

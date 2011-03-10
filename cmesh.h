@@ -12,6 +12,9 @@
  * degree - bounday is the number of incident triangles,
  * so boundary is 1 if vertex in on the boundary, 0 otherwise.
  *
+ * v = (e^r - 1) / (e^r + 1), where r is the radius from the circle
+ * packing metric.
+ *
  * TODO: Make lists respect inherent cyclic ordering.
  */
 typedef struct {
@@ -20,6 +23,8 @@ typedef struct {
         void *incident_vertices[max_degree];
         void *incident_triangles[max_degree];
         void *incident_edges[max_degree];
+        void *link_edges[max_degree];
+        double v;
         int index;
 } vertex;
 
@@ -29,10 +34,19 @@ typedef struct {
  * left to right. i.e. it agrees with the ordering of triangle 1, 
  * and is opposite to the ordering of triangle 2 (if the edge is 
  * interior).
+ *
+ * cos_angle stores the cosine of the intersection of the two
+ * circles (centered at the end points of the edge) used in
+ * the circle packing metric.
+ *
+ * cosh_length stores the hyp cosine of the length of the edge,
+ * computed using the circle packing metric.
  */
 typedef struct {
         void *vertices[2];
         void *incident_triangles[2];
+        double cos_angle;
+        double cosh_length;
         int index;
 } edge;
 
@@ -45,11 +59,15 @@ typedef struct {
  *
  * i.e. if a triangle has vertices a, b, c with opposite 
  * edges A, B, C, then vertices listed in the order (a, b, c) 
- * means edges should be listed in the order (A, B, C)
+ * means edges should be listed in the order (A, B, C).
+ *
+ * Inner angles are measured using hyperbolic triangles laws, 
+ * with edge lengths coming from the circle packing metric.
  */
 typedef struct {
         void *vertices[3];
         void *edges[3];
+        double inner_angles[3];
         int index;
 } triangle;
 
@@ -81,9 +99,6 @@ typedef struct {
         edge *edges;
         triangle *triangles;
         point *coordinates;
-        double *edge_lengths;
-        double *radii;
-        double *circle_angles;
 } mesh;
 
 int initialize_mesh(mesh *m, filedata *fd);
@@ -95,7 +110,12 @@ int construct_edges(mesh *m);
 void *get_incident_edge(vertex *v1, vertex *v2);
 void add_incident_vertices_and_edge(vertex *v1, vertex *v2, edge *e);
 int valid_pointers(mesh *m);
-
+void sort_cyclic_order_at_vertices(mesh *m);
+int find_clockwise_edge(vertex *v, void *ie[], void *iv[]);
+int find_counterclockwise_edge(vertex *v, void *ie[], void *iv[]);
+void sort_incident_edges_and_vertices(vertex *v, void *ie[], void *iv[]);
+void sort_incident_triangles(vertex *v);
+void *get_common_triangle(edge *e1, edge *e2);
 point* get_coordinate(mesh *m, vertex *v);
 double calc_distance(point *p1, point *p2);
 
