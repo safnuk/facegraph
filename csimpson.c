@@ -15,7 +15,7 @@ int main()
 {
         double result;
         double a, b, h;
-        a=2; b=5; h=0.1;
+        a=5; b=2; h=0.1;
         result = integrate(&g, a, b, h, NULL);
         printf("Int(g, %f, %f) = %f  (dx=%f)\n", a, b, result, h);
 }
@@ -52,13 +52,13 @@ double integrate(double (*f)(double, void *),
 
 /* Returns the smallest integer n which is even and satisfies
  *      |b-a| / n  <  dx
- * Also resets dx to be the correct step size ( = |b-a|/n )
+ * Also resets dx to be the correct step size ( = (b-a)/n )
  */
 int calculate_number_of_intervals(double a, double b, double *dx)
 {
         double width = a < b ? (b-a) : (a-b); // width = |b-a|
         int n = (int)(width / (*dx) + 1);
         n =  n % 2 ? n+1 : n; // add 1 to n if it is odd
-        *dx = width / n;
+        *dx = (b-a) / n;
         return n;
 }

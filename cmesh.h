@@ -25,6 +25,7 @@ typedef struct {
         void *incident_edges[max_degree];
         void *link_edges[max_degree];
         double s;
+        double s0;
         int index;
 } vertex;
 
@@ -88,12 +89,19 @@ typedef struct {
  * coordinates is an array of (x,y,z) triples giving the
  * position of each vertex.
  *
+ * The quantity f represents the integral of Sum(K_i du_i)
+ * from the basepoint given by the initial circle packing
+ * metric to the current state of the circle packing metric.
+ * The gradient of f is the curvatures of the mesh, so 
+ * minimizing f is equivalent to finding 0 curvature.
+ *
  * TODO: Check triangulation data for
  *      - isolated vertices
  *      - bivalent vertices
  *      - improvable trivalent and quadvalent vertices
  */
 typedef struct {
+        double f;
         int ranks[3];  // ranks of i-th chain groups
         vertex *vertices;
         edge *edges;
@@ -119,6 +127,13 @@ void *get_common_triangle(edge *e1, edge *e2);
 void add_link_edges(mesh *m);
 point* get_coordinate(mesh *m, vertex *v);
 double calc_distance(point *p1, point *p2);
+lbfgsfloatval_t update_f_and_s(mesh *m, const lbfgsfloatval_t *u, double ds);
+void calc_curvatures(mesh *m, lbfgsfloatval_t *K);
+double calc_curvature(vertex *v);
+double curvature_integrand(double s, void *instance);
+void calc_edge_length (edge *e);
+double min(lbfgsfloatval_t *x, int n);
+double max(lbfgsfloatval_t *x, int n);
 
 void print_mesh(mesh *m);
 void print_coordinate(point *p);

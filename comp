@@ -1,0 +1,3 @@
+#!/bin/sh
+
+gcc -ggdb -L/usr/local/lib -llbfgs cmain.c cricci.c ccirclepack.c cfile_io.c csimpson.c cmesh.c

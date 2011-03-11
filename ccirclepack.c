@@ -128,6 +128,7 @@ void copy_radii(optimizer *opt)
         for(i=0; i < opt->m->ranks[0]; i++) {
                 v = &(opt->m->vertices[i]);
                 v->s = (exp(opt->r[i]) - 1) / (exp(opt->r[i]) + 1);
+                v->s0 = v->s;
         }
 }
 

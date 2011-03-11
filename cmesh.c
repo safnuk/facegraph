@@ -3,7 +3,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <lbfgs.h>
 #include "cfile_io.h"
+#include "csimpson.h"
 #include "cmesh.h"
 
 
@@ -39,6 +41,7 @@ int initialize_mesh(mesh *m, filedata *fd)
         add_indices(m);
         sort_cyclic_order_at_vertices(m);
         add_link_edges(m);
+        m->f = 0;
 }
 
 /* Free memory allocated in a previously initialized mesh. */
@@ -316,8 +319,112 @@ double calc_distance(point *p1, point *p2)
         return sqrt(sum);
 }
 
+/* Changes the s parameters at all vertices to e^u.
+ * Also calculates f at the new parameter values.
+ * Since f is defined by an integral which can only
+ * be numerically estimates, the updates to s occurs
+ * in stages to allow for Simpson's rule to be used.
+ *
+ * If an invalid value for u is passes (>= 0) then
+ * the function resets s to its original value (before Ricci
+ * flow started).
+ *
+ * Function returns the updated value for f(u).
+ */
+lbfgsfloatval_t update_f_and_s(mesh *m,  const lbfgsfloatval_t *u, double ds)
+{
+        int i;
+        double s1, s0;
+        vertex *v;
+        for (i=0; i < m->ranks[0]; i++) {
+                v = &(m->vertices[i]);
+                s0 = v->s;
+                s1 = exp(u[i]);
+                m->f += integrate(&curvature_integrand, s0, s1, ds, (void *)v);
+        }
+        return m->f;
+}
 
-// TODO: Update comment.
+/* Callback function used to integrate curvatures. After calling,
+ * the s parameter of the vertex will be updated to s, and the lengths
+ * of all incident edges will be recalculated accordingly.
+ *
+ * Integrand is K / s because of change of variables u -> s = e^u.
+ */
+double curvature_integrand(double s, void *instance)
+{
+        int i;
+        edge *e;
+        vertex *v = (vertex *)instance; 
+        v->s = s;
+        for (i=0; i < v->degree; i++) {
+                e = (edge *)(v->incident_edges[i]);
+                calc_edge_length(e);
+        }
+        return calc_curvature(v) / s;
+}
+
+/* Calculates the curvatures at all vertices and stores
+ * the values in the array K.
+ */
+void calc_curvatures(mesh *m, lbfgsfloatval_t *K)
+{
+        int i;
+        vertex *v;
+        for (i=0; i < m->ranks[0]; i++) {
+                v = &(m->vertices[i]);
+                K[i] = calc_curvature(v);
+        }
+}
+
+/* Calculates the curvature K at vertex v,
+ * and returns the result. Note that
+ *      K = 2Pi - (1+b)Sum(interior angles )
+ * where the sum is over all triangles incident to v, with
+ * b = 1 if v is a boundary vertex, 0 otherwise.
+ */
+double calc_curvature(vertex *v)
+{
+        int i;
+        int flag = 0;
+        double angle_sum = 0;
+        double a, b, c, aa, bb;
+        for (i=0; i < v->degree - v->boundary; i++) {
+                a = ((edge *)(v->incident_edges[i]))->cosh_length;
+                b = ((edge *)(v->incident_edges[(i+1) % v->degree]))->cosh_length;
+                aa = a*a;
+                bb = b*b;
+                if ((aa <= 1.0) || (bb <= 1.0)) {
+                        flag = 1;
+                } else {
+                        c = ((edge *)(v->link_edges[i]))->cosh_length;
+                        angle_sum += acos((a * b - c) / (sqrt((a*a - 1) * (b*b - 1))));
+                }
+        }
+        if (flag) {
+                printf("Flag on the field.\n");
+                return 2 * M_PI;
+        } else {
+                return 2*M_PI - (1+v->boundary)*angle_sum;
+        }
+}
+
+void calc_edge_length (edge *e)
+{
+        double a, b, c, aa, bb;
+        a = ((vertex *)(e->vertices[0]))->s;
+        b = ((vertex *)(e->vertices[1]))->s;
+        c = e->cos_angle;
+        aa = a * a;
+        bb = b * b;
+        if ((aa >= 1.0) || (bb >= 1.0)) {
+                e->cosh_length = INFINITY;
+                printf("Long edge found.\n");
+        } else {
+                e->cosh_length = ((1 + aa)*(1 + bb) - 4*a*b*c) / 
+                        ((1 - aa)*(1 - bb));
+        }
+}
 /* Checks to see if vertices v1 and v2 have been previously found
  * to be incident. If so, a pointer to the edge joining them
  * is returned. If not, the NULL pointer is returned.
@@ -367,6 +474,25 @@ int valid_pointers(mesh *m)
         return 1;
 }
 
+double min(lbfgsfloatval_t *x, int n)
+{
+        int i;
+        double smallest = x[0];
+        for (i=0; i<n; i++) {
+                smallest = x[i] < smallest ? x[i] : smallest;
+        }
+        return smallest;
+}
+
+double max(lbfgsfloatval_t *x, int n)
+{
+        int i;
+        double largest = x[0];
+        for (i=0; i<n; i++) {
+                largest = x[i] > largest ? x[i] : largest;
+        }
+        return largest;
+}
 /* Finds the vertex different from v, incident to edge e.
  * If v is not incident to e, then -1 is returned.
  */
