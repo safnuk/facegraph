@@ -81,8 +81,8 @@ static lbfgsfloatval_t ricci_evaluate(
         printf("Range for u: %f <= u <= %f; ", min(u,n), max(u,n));
         f = update_f_and_s(m, u, r->ds);
         printf("f = %.4e; ", f);
-        K_avg = calc_curvatures(m, K);
-        printf("%f <= K <= %f; Avg K = %f\n", min(K,n), max(K,n), K_avg);
+        calc_curvatures(m, K);
+        printf("%f <= K <= %f\n", min(K,n), max(K,n));
         return f;
 }
 

@@ -14,6 +14,10 @@
  * degree - bounday is the number of incident triangles,
  * so boundary is 1 if vertex in on the boundary, 0 otherwise.
  *
+ * dtheta_du records the derivatives of the inner angles of
+ * all triangles incident to the vertex (s = e^u). They are pointers
+ * to previously calculated Hessian data (stored in mesh struct).
+ *
  * s = (e^r - 1) / (e^r + 1), where r is the radius from the circle
  * packing metric.
  */
@@ -24,6 +28,7 @@ typedef struct {
         void *incident_triangles[max_degree];
         void *incident_edges[max_degree];
         void *link_edges[max_degree];
+        double *dtheta_du[max_degree][3];
         double s;
         double s0;
         int index;
@@ -64,11 +69,14 @@ typedef struct {
  *
  * Inner angles are measured using hyperbolic triangles laws, 
  * with edge lengths coming from the circle packing metric.
+ *
+ * hessian is the matrix of derivatives [d theta_i / du_j].
  */
 typedef struct {
         void *vertices[3];
         void *edges[3];
         double inner_angles[3];
+        double hessian[3][3];
         int index;
 } triangle;
 
@@ -125,6 +133,8 @@ void sort_incident_edges_and_vertices(vertex *v, void *ie[], void *iv[]);
 void sort_incident_triangles(vertex *v);
 void *get_common_triangle(edge *e1, edge *e2);
 void add_link_edges(mesh *m);
+void construct_vertex_hessian_pointers(mesh *m);
+int get_vertex_position_in_triangle(vertex *v, triangle *t);
 point* get_coordinate(mesh *m, vertex *v);
 double calc_distance(point *p1, point *p2);
 lbfgsfloatval_t update_f_and_s(mesh *m, const lbfgsfloatval_t *u, double ds);

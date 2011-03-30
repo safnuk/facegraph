@@ -42,6 +42,7 @@ int initialize_mesh(mesh *m, filedata *fd)
         sort_cyclic_order_at_vertices(m);
         add_link_edges(m);
         m->f = 0;
+        construct_vertex_hessian_pointers(m);
 }
 
 /* Free memory allocated in a previously initialized mesh. */
@@ -186,6 +187,43 @@ void add_link_edges(mesh *m)
                 }
         }
 }
+
+/* Links the hessian data at each vertex to the hessian data recorded
+ * at each triangle (the latter is easier to calculate, the former
+ * is easier to access when performing Ricci flow).
+ */
+void construct_vertex_hessian_pointers(mesh *m)
+{
+        vertex *v;
+        triangle *t;
+        int i, j, k, vi;
+        for (vi=0; vi < m->ranks[0]; vi++) {
+                v = &(m->vertices[vi]);
+                for (i=0; i < v->degree - v->boundary; i++) {
+                        t = (triangle *)(v->incident_triangles[i]);
+                        k = get_vertex_position_in_triangle(v,t);
+                        v->dtheta_du[i][j] = &(t->hessian[j][k]);
+                }
+        }
+}
+
+/* Assuming that vertex v is incident to triangle t, function
+ * returns the order (0, 1 or 2) of the vertex within the triangle.
+ *
+ * Exits rudely if the vertex is not incident.
+ */
+int get_vertex_position_in_triangle(vertex *v, triangle *t)
+{
+        int i;
+        for (i=0; i<3; i++) {
+                if (v == (t->vertices[i])) {
+                        return i;
+                }
+        }
+        printf("Vertex is not incident to triangle - something is wrong!\n");
+        exit(1);
+}
+
 
 /* Finds the edge incident to v, immediately clockwise from ie[0],
  * and records it in ie[-1]. Does the same for the vertices.
