@@ -22,6 +22,6 @@ int main(int argc, char *argv[])
         deallocate_filedata(&data);
         calc_circlepack_metric(&m);
         // print_mesh(&m);
-        // run_ricci_flow(&m);
+        run_ricci_flow(&m);
         deallocate_mesh(&m);
 }

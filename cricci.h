@@ -24,7 +24,8 @@ void initialize_ricci_solver(ricci_solver *r, mesh *m);
 void deallocate_ricci_solver(ricci_solver *r);
 void calc_initial_variables(ricci_solver *r);
 void calc_flat_metric(ricci_solver *r);
-
+int calc_hessian_product(double *x, double *y, int n,
+    void *instance);
 
 static lbfgsfloatval_t ricci_evaluate(
     void *instance,

@@ -404,14 +404,45 @@ double curvature_integrand(double s, void *instance)
 
 /* Calculates the curvatures at all vertices and stores
  * the values in the array K.
+ *
+ * TODO: Update inner angles when edge lengths are calculated.
  */
 void calc_curvatures(mesh *m, lbfgsfloatval_t *K)
 {
         int i;
         vertex *v;
+        calc_inner_angles(m);
         for (i=0; i < m->ranks[0]; i++) {
                 v = &(m->vertices[i]);
                 K[i] = calc_curvature(v);
+        }
+}
+
+/* Calculates interior angles in the triangles
+ * of the mesh (using hyperbolic trig).
+ */
+void calc_inner_angles(mesh *m)
+{
+        triangle *t;
+        edge *e;
+        int i, j;
+        double cl[3];
+        double sq[3];
+        double cos_angle;
+        for(i=0; i < m->ranks[2]; i++) {
+                t = &(m->triangles[i]);
+                for (j=0; j<3; j++) {
+                        cl[j] = ((edge *)(t->edges[j]))->cosh_length;        
+                        sq[j] = cl[j] * cl[j];
+                }
+                for (j=0; j<3; j++) {
+                        cos_angle = cl[(j+2)%3] * cl[(j+1)%3] - cl[j];
+                        cos_angle = cos_angle / sqrt((sq[(j+2)%3] - 1) 
+                                        * (sq[(j+1)%3] - 1));
+                        t->inner_angles[j] = acos(cos_angle);
+                        t->cos_angles[j] = cos_angle;
+                        t->sin_angles[j] = sin(t->inner_angles[j]);
+                }
         }
 }
 
@@ -423,28 +454,15 @@ void calc_curvatures(mesh *m, lbfgsfloatval_t *K)
  */
 double calc_curvature(vertex *v)
 {
-        int i;
-        int flag = 0;
+        int i, j;
         double angle_sum = 0;
-        double a, b, c, aa, bb;
+        triangle *t;
         for (i=0; i < v->degree - v->boundary; i++) {
-                a = ((edge *)(v->incident_edges[i]))->cosh_length;
-                b = ((edge *)(v->incident_edges[(i+1) % v->degree]))->cosh_length;
-                aa = a*a;
-                bb = b*b;
-                if ((aa <= 1.0) || (bb <= 1.0)) {
-                        flag = 1;
-                } else {
-                        c = ((edge *)(v->link_edges[i]))->cosh_length;
-                        angle_sum += acos((a * b - c) / (sqrt((a*a - 1) * (b*b - 1))));
-                }
+                t = (triangle *)(v->incident_triangles[i]);
+                j = get_vertex_position_in_triangle(v, t);
+                angle_sum += t->inner_angles[j];
         }
-        if (flag) {
-                printf("Flag on the field.\n");
-                return 2 * M_PI;
-        } else {
-                return 2*M_PI - (1+v->boundary)*angle_sum;
-        }
+        return 2*M_PI - (1 + v->boundary)*angle_sum;
 }
 
 void calc_edge_length (edge *e)
@@ -457,12 +475,124 @@ void calc_edge_length (edge *e)
         bb = b * b;
         if ((aa >= 1.0) || (bb >= 1.0)) {
                 e->cosh_length = INFINITY;
+                e->sinh_length = INFINITY;
                 printf("Long edge found.\n");
         } else {
                 e->cosh_length = ((1 + aa)*(1 + bb) - 4*a*b*c) / 
                         ((1 - aa)*(1 - bb));
+                e->sinh_length = sqrt(e->cosh_length * e->cosh_length - 1);
         }
 }
+
+/* Calculates the Hessian matrix [dK_i / du_j], given 
+ * that edge angles and radius parameters are set.
+ */
+void calc_hessian(mesh *m)
+{
+        double dtheta_dl[3][3];
+        double dl_ds[3][3];
+        double ds_du[3][3];
+        triangle *t;
+        int i;
+        for (i=0; i < m->ranks[2]; i++) {
+                t = &(m->triangles[i]);
+                calc_dtheta_dl(t, dtheta_dl);
+                calc_dl_ds(t, dl_ds);
+                calc_ds_du(t, ds_du);
+                calc_3_matrix_product(dtheta_dl, dl_ds, ds_du,
+                                t->hessian);
+        }
+}
+
+/* Calculate the matrix of derivatives [d theta/dl],
+ * and stores the result in A.
+ */
+void calc_dtheta_dl(triangle *t, double A[3][3])
+{
+        double d1, d2;
+        double cosh_l[3], sinh_l[3];
+        int i, j, k, j1, j2;
+        for (i=0; i<3; i++) {
+                cosh_l[i] = ((edge *)t->edges[i])->cosh_length;
+                sinh_l[i] = ((edge *)t->edges[i])->sinh_length;
+        }
+        for (i=0; i<3; i++) {
+                A[i][i] = sinh_l[i] / (t->sin_angles[i] *
+                                sinh_l[(i+1)%3] * 
+                                sinh_l[(i+2)%3]);
+                for (j1=1; j1<3; j1++) {
+                        j2 = 3 - j1;
+                        j = (i+j1) % 3;
+                        k = (i+j2) % 3; // i, j, k all distinct
+                        d1 = cosh_l[j] * t->cos_angles[i] / 
+                                sinh_l[j];
+                        d2 = cosh_l[k] / sinh_l[k];
+                        A[i][j] = (d1 - d2) / t->sin_angles[i];
+                }
+        }
+}
+
+/* Calculate the matrix of derivatives [dl/ds],
+ * and stores the result in A.
+ */
+void calc_dl_ds(triangle *t, double A[3][3])
+{
+        int i, j, k, j1, j2;
+        double d1, d2;
+        double s[3], cos_e[3], cosh_l[3], sinh_l[3];
+        for (i=0; i<3; i++) {
+                s[i] = ((vertex *)t->vertices[i])->s;
+                cosh_l[i] = ((edge *)t->edges[i])->cosh_length;
+                sinh_l[i] = ((edge *)t->edges[i])->sinh_length;
+                cos_e[i] = ((edge *)t->edges[i])->cos_angle;
+        }
+        for (i=0; i<3; i++) {
+                A[i][i] = 0;
+                for (j1=1; j1<3; j1++) {
+                        j2 = 3 - j1;
+                        j = (i+j1) % 3;
+                        k = (i+j2) % 3; // i, j, k all distinct
+                        d1 = (2*s[j] * (1 + s[k]*s[k]) - 4*s[k] * cos_e[i] ) /
+                               ((1 - s[j]*s[j]) * (1 - s[k]*s[k]));
+                        d2 = 2 * s[j] * cosh_l[i] / (1 - s[j]*s[j]);
+                        A[i][j] = (d1 + d2) / sinh_l[i]; 
+                }
+        }
+}
+
+/* Calculate the matrix of derivatives [ds/du],
+ * and stores the result in A.
+ */
+void calc_ds_du(triangle *t, double A[3][3])
+{
+        int i, j;
+        for (i=0; i<3; i++) {
+                A[i][i] = ((vertex *)t->vertices[i])->s;
+                for (j=1; j<3; j++) {
+                        A[i][(i+j)%3] = 0;
+                }
+        }
+}
+
+/* Calculate the product ABC, and stores the result in D.
+ */
+void calc_3_matrix_product(double A[3][3], double B[3][3],
+    double C[3][3], double D[3][3])
+{
+        int i, j, k, l;
+        for (i=0; i<3; i++) {
+                for (j=0; j<3; j++) {
+                        D[i][j] = 0;
+                        for (k=0; k<3; k++) {
+                                for (l=0; l<3; l++) {
+                                        D[i][j] += A[i][k] * B[k][l] *
+                                                C[l][j];
+                                }
+                        }
+                }
+        }
+}
+
 /* Checks to see if vertices v1 and v2 have been previously found
  * to be incident. If so, a pointer to the edge joining them
  * is returned. If not, the NULL pointer is returned.

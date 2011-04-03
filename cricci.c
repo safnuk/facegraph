@@ -15,6 +15,7 @@ void run_ricci_flow(mesh *m)
         ricci_solver r;
         initialize_ricci_solver(&r, m);
         calc_flat_metric(&r);
+        calc_hessian(m);
         deallocate_ricci_solver(&r);
 }
 
@@ -52,6 +53,36 @@ void calc_flat_metric(ricci_solver *r)
                                 s->iterations, status_code);
                 printf("    f(u) = %f, ||u|| = %f, ||K(u)|| = %f\n", 
                                 f_of_u, s->u_norm, s->K_norm);
+        }
+}
+
+/* Calculates the product H*x and returns the result in y,
+ * where H is the hessian [dK_i / du_j] (symmetric, positive definite).
+ *
+ * n is the size (number of vertices) and instance is a pointer
+ * to a ricci_solver struct.
+ *
+ * Assumes that calc_hessian(m) has been called for the mesh
+ * being used.
+ */
+int calc_hessian_product(double *x, double *y, int n,
+    void *instance)
+{
+        int i, j, k;
+        mesh *m;
+        ricci_solver *rs;
+        vertex *v;
+        triangle *t;
+
+        rs = (ricci_solver *)instance;
+        m = rs->m;
+        for (int i=0; i<n; i++) {
+                y[i] = 0;
+                v = &(m->vertices[i]);
+                for (j=0; j < v->degree - v->boundary; j++) {
+                        for (k=0; k<3; k++) {
+                        }
+                }
         }
 }
 

@@ -53,6 +53,7 @@ typedef struct {
         void *incident_triangles[2];
         double cos_angle;
         double cosh_length;
+        double sinh_length;
         int index;
 } edge;
 
@@ -76,6 +77,8 @@ typedef struct {
         void *vertices[3];
         void *edges[3];
         double inner_angles[3];
+        double cos_angles[3];
+        double sin_angles[3];
         double hessian[3][3];
         int index;
 } triangle;
@@ -139,11 +142,19 @@ point* get_coordinate(mesh *m, vertex *v);
 double calc_distance(point *p1, point *p2);
 lbfgsfloatval_t update_f_and_s(mesh *m, const lbfgsfloatval_t *u, double ds);
 void calc_curvatures(mesh *m, lbfgsfloatval_t *K);
+void calc_inner_angles(mesh *m);
 double calc_curvature(vertex *v);
 double curvature_integrand(double s, void *instance);
 void calc_edge_length (edge *e);
 double min(lbfgsfloatval_t *x, int n);
 double max(lbfgsfloatval_t *x, int n);
+
+void calc_hessian(mesh *m);
+void calc_dtheta_dl(triangle *t, double A[3][3]);
+void calc_dl_ds(triangle *t, double A[3][3]);
+void calc_ds_du(triangle *t, double A[3][3]);
+void calc_3_matrix_product(double A[3][3], double B[3][3],
+    double C[3][3], double D[3][3]);
 
 void print_mesh(mesh *m);
 void print_coordinate(point *p);
