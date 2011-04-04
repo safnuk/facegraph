@@ -68,11 +68,12 @@ void calc_flat_metric(ricci_solver *r)
 int calc_hessian_product(double *x, double *y, int n,
     void *instance)
 {
-        int i, j, k;
+        int i, j, k, l;
         mesh *m;
         ricci_solver *rs;
-        vertex *v;
+        vertex *v, *v1;
         triangle *t;
+
 
         rs = (ricci_solver *)instance;
         m = rs->m;
@@ -80,7 +81,11 @@ int calc_hessian_product(double *x, double *y, int n,
                 y[i] = 0;
                 v = &(m->vertices[i]);
                 for (j=0; j < v->degree - v->boundary; j++) {
+                        t = (triangle *)(v->incident_triangles[j])
                         for (k=0; k<3; k++) {
+                                v1 = (vertex *)(t->vertices[k]);
+                                l = v1->index;
+                                y[i] -= x[l] * (v->dtheta_du[j][k])
                         }
                 }
         }
