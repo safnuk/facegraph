@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include <lbfgs.h>
+// #include <lbfgs.h>
 #include "cfile_io.h"
 #include "csimpson.h"
 #include "cmesh.h"
@@ -369,7 +369,7 @@ double calc_distance(point *p1, point *p2)
  *
  * Function returns the updated value for f(u).
  */
-lbfgsfloatval_t update_f_and_s(mesh *m,  const lbfgsfloatval_t *u, double ds)
+double update_f_and_s(mesh *m,  double *u, double ds)
 {
         int i;
         double s1, s0;
@@ -407,7 +407,7 @@ double curvature_integrand(double s, void *instance)
  *
  * TODO: Update inner angles when edge lengths are calculated.
  */
-void calc_curvatures(mesh *m, lbfgsfloatval_t *K)
+void calc_curvatures(mesh *m, double *K)
 {
         int i;
         vertex *v;

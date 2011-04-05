@@ -139,15 +139,16 @@ void add_link_edges(mesh *m);
 void construct_vertex_hessian_pointers(mesh *m);
 int get_vertex_position_in_triangle(vertex *v, triangle *t);
 point* get_coordinate(mesh *m, vertex *v);
+
 double calc_distance(point *p1, point *p2);
-lbfgsfloatval_t update_f_and_s(mesh *m, const lbfgsfloatval_t *u, double ds);
-void calc_curvatures(mesh *m, lbfgsfloatval_t *K);
+double update_f_and_s(mesh *m, double *u, double ds);
+void calc_curvatures(mesh *m, double *K);
 void calc_inner_angles(mesh *m);
 double calc_curvature(vertex *v);
 double curvature_integrand(double s, void *instance);
 void calc_edge_length (edge *e);
-double min(lbfgsfloatval_t *x, int n);
-double max(lbfgsfloatval_t *x, int n);
+double min(double *x, int n);
+double max(double *x, int n);
 
 void calc_hessian(mesh *m);
 void calc_dtheta_dl(triangle *t, double A[3][3]);
