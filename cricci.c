@@ -37,17 +37,7 @@ void deallocate_ricci_solver(ricci_solver *r)
 
 void calc_flat_metric(ricci_solver *r)
 {
-        int status_code;
-        lbfgsfloatval_t f_of_u;
-        ricci_state *s = &(r->current_state);
-        status_code = lbfgs(r->m->ranks[0], r->u, &f_of_u,
-                        ricci_evaluate, ricci_progress, r, &(r->param));
-        if (r->verbose >= 1) {
-                printf("Ricci solver finished %i iterations with status code %i.\n",
-                                s->iterations, status_code);
-                printf("    f(u) = %f, ||u|| = %f, ||K(u)|| = %f\n", 
-                                f_of_u, s->u_norm, s->K_norm);
-        }
+
 }
 
 /* Calculates the product H*x and returns the result in y,
