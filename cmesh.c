@@ -202,7 +202,9 @@ void construct_vertex_hessian_pointers(mesh *m)
                 for (i=0; i < v->degree - v->boundary; i++) {
                         t = (triangle *)(v->incident_triangles[i]);
                         k = get_vertex_position_in_triangle(v,t);
-                        v->dtheta_du[i][j] = &(t->hessian[j][k]);
+                        for (j=0; j<3; j++) {
+                                v->dtheta_du[i][j] = &(t->hessian[j][k]);
+                        }
                 }
         }
 }
@@ -360,7 +362,7 @@ double calc_distance(point *p1, point *p2)
 /* Changes the s parameters at all vertices to e^u.
  * Also calculates f at the new parameter values.
  * Since f is defined by an integral which can only
- * be numerically estimates, the updates to s occurs
+ * be numerically estimated, the updates to s occurs
  * in stages to allow for Simpson's rule to be used.
  *
  * If an invalid value for u is passes (>= 0) then
@@ -642,7 +644,7 @@ int valid_pointers(mesh *m)
         return 1;
 }
 
-double min(lbfgsfloatval_t *x, int n)
+double min(double *x, int n)
 {
         int i;
         double smallest = x[0];
@@ -652,7 +654,7 @@ double min(lbfgsfloatval_t *x, int n)
         return smallest;
 }
 
-double max(lbfgsfloatval_t *x, int n)
+double max(double *x, int n)
 {
         int i;
         double largest = x[0];
