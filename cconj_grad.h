@@ -5,6 +5,9 @@ void pccg_solve(int (*A)(double *, double *, int, void *),
     int (*inv_diag)(double *, int, void *),
     double *x, double *b, double tolerance, int n, 
     int max_iterations, void *instance);
+void initialize_preconditioner(double *precon, 
+    int (*A)(double *, double *, int, void *),  
+    int n, void *instance);
 void cg_solve(int (*A)(double *, double *, int, void *), 
     double *x, double *b, double tolerance, int n, 
     int max_iterations, void *instance);

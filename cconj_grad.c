@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include "cconj_grad.h"
 
+/*
 int B(double *x, double *y, int n, void* instance)
 {
         int i, j;
@@ -46,6 +47,8 @@ int main(int argc, char *argv[])
         printf("x = [%f, %f, %f, %f]\n", x[0], x[1], x[2], x[3]);
         return 0;
 }
+*/
+
 /* Uses conjugate gradient method to approximately solve the equation
  *      A x = b
  * Note that A is assumed to be symmetric and positive
@@ -100,11 +103,7 @@ void cg_solve(int (*A)(double *, double *, int, void *),
                         A(p, Ap, n, instance); // Ap = A(p)
                 }
                 r0_squared = r1_squared;
-                printf("Iteration: %i  Error squared: %f, x = [", k, r1_squared);
-                for (i=0; i<n; i++) {
-                        printf("%f, ", x[i]);
-                }
-                printf("]\n");
+                printf("CG iteration: %i  Error squared: %f\n", k, r1_squared);
         }
         free(Ap);
         free(p);
@@ -170,6 +169,11 @@ void pccg_solve(int (*A)(double *, double *, int, void *),
         free(p);
         free(r1);
         free(r0);
+}
+
+void initialize_preconditioner(double *precon, int (*A)(double *, double *, int, void *),  
+                int n, void *instance) 
+{
 }
 
 /* Calculates the vector sum

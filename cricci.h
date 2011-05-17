@@ -22,6 +22,8 @@ typedef struct {
   double wolfe_c2;
   double ds;
   int max_iterations;
+  int cg_max_iterations;
+  double cg_tolerance;
   int verbose;
 } ricci_config;
 
@@ -46,7 +48,7 @@ void initialize_ricci_solver(ricci_solver *r, mesh *m, ricci_config *rc);
 void deallocate_ricci_solver(ricci_solver *r);
 void calc_initial_variables(ricci_solver *r);
 void calc_flat_metric(ricci_solver *r);
-int calc_hessian_product(double *x, double *y,
+int calc_hessian_product(double *x, double *y, int n,
     void *instance);
 int check_hessian_symmetry(ricci_solver *r);
 ricci_state convergence_test(ricci_solver *r);

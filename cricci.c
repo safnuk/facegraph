@@ -7,6 +7,7 @@
 #include "csimpson.h"
 #include "cfile_io.h"
 #include "cmesh.h"
+#include "cconj_grad.h"
 #include "cricci.h"
 
 void run_ricci_flow(mesh *m)
@@ -28,6 +29,8 @@ void initialize_ricci_solver(ricci_solver *r, mesh *m, ricci_config *rc)
         rc->wolfe_c1= 1.0e-4;
         rc->wolfe_c2 = 0.9;
         rc->max_iterations = 20;
+        rc->cg_max_iterations = 50;
+        rc->cg_tolerance = 1.0e-4;
         r->m = m;
         r->rc = rc;
         r->iteration = 0;
@@ -69,6 +72,7 @@ ricci_state convergence_test(ricci_solver *r)
                 r->status = TOO_MANY_ITERATIONS; 
         }
         r->K_norm = sup_norm(r->K, r->m->ranks[0]);
+        r->step_norm = sup_norm(r->step, r->m->ranks[0]);
         if (r->K_norm < r->rc->relative_error * r->init_K_norm + r->rc->absolute_error) {
                 r->status = CONVERGENT;
         }
@@ -78,10 +82,14 @@ ricci_state convergence_test(ricci_solver *r)
 
 void update_hessian(ricci_solver *r)
 {
+        calc_hessian(r->m);
 }
 
 void calc_next_step(ricci_solver *r)
 {
+        cg_solve(&calc_hessian_product, r->step, r->K, r->rc->cg_tolerance,
+                        r->m->ranks[0], r->rc->cg_max_iterations, 
+                        (void *)r);
 }
 
 void calc_line_search(ricci_solver *r)
@@ -97,7 +105,7 @@ void calc_line_search(ricci_solver *r)
  * Assumes that calc_hessian(m) has been called for the mesh
  * being used.
  */
-int calc_hessian_product(double *x, double *y, 
+int calc_hessian_product(double *x, double *y, int n,
     void *instance)
 {
         int i, j, k, l;
@@ -156,7 +164,7 @@ int check_hessian_symmetry(ricci_solver *r)
         j=0;
         for (i=0; i < m->ranks[0]; i++) {
                 x[i] = 1;
-                calc_hessian_product(x, &y[j * m->ranks[0]], (void *)r);
+                calc_hessian_product(x, &y[j * m->ranks[0]], r->m->ranks[0], (void *)r);
                 j++;
                 x[i]= 0;
         }
