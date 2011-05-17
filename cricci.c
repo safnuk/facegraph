@@ -37,60 +37,36 @@ void deallocate_ricci_solver(ricci_solver *r)
 
 void calc_flat_metric(ricci_solver *r)
 {
-        mesh *m = r->m;
-        edge *e;
-        int i;
-
-        for (i=0; i < m->ranks[1]; i++) {
-                e = &(m->edges[i]);
-                calc_edge_length(e);
-        }
-        calc_inner_angles(m);
-        calc_hessian(m);
-        if (check_hessian_symmetry(r)) {
-                printf("Hessian is symmetric.\n");
-        }
-        else {
-                printf("Hessian is NOT symmetric.\n");
+        while (convergence_test(r) == RUNNING) {
+                update_hessian(r);
+                calc_next_step(r);
+                calc_line_search(r);
         }
 }
 
-int check_hessian_symmetry(ricci_solver *r)
+
+/* Tests if ricci flow has converged, and updates status
+ * of ricci_solver.
+ */
+ricci_state convergence_test(ricci_solver *r)
 {
-        mesh *m = r->m;
-        double *x, *y;
-        int i,j;
-        double h_ij, h_ji;
-        x = (double *) malloc(m->ranks[0] * sizeof(double));
-        y = (double *) malloc(m->ranks[0] * m->ranks[0] * sizeof(double));
-        if (!x || !y) {
-                printf("Memory allocation error in check_hessian_symmetry.\n");
-                exit(1);
+        r->iteration++;
+        if (r->iteration > r->rc->max_iterations) {
+                r->status = TOO_MANY_ITERATIONS; 
         }
-        for (i=0; i < m->ranks[0]; i++) {
-                x[i] = 0;
-        }
-        j=0;
-        for (i=0; i < m->ranks[0]; i++) {
-                x[i] = 1;
-                calc_hessian_product(x, &y[j * m->ranks[0]], (void *)r);
-                j++;
-                x[i]= 0;
-        }
-        for (i=0; i < m->ranks[0]; i++) {
-                for (j=i+1; j < m->ranks[0]; j++) {
-                        h_ij = y[i * m->ranks[0] + j];
-                        h_ji = y[j * m->ranks[0] + i];
-                        if (abs(h_ij -  h_ji) > .00000001) {
-                                free(x);
-                                free(y);
-                                return 0;
-                        }
-                }
-        }
-        free(x);
-        free(y);
-        return 1;
+        return r->status;
+}
+
+void update_hessian(ricci_solver *r)
+{
+}
+
+void calc_next_step(ricci_solver *r)
+{
+}
+
+void line_search(ricci_solver *r)
+{
 }
 
 /* Calculates the product H*x and returns the result in y,
@@ -136,3 +112,40 @@ void calc_initial_variables(ricci_solver *r)
         }
 }
 
+int check_hessian_symmetry(ricci_solver *r)
+{
+        mesh *m = r->m;
+        double *x, *y;
+        int i,j;
+        double h_ij, h_ji;
+        x = (double *) malloc(m->ranks[0] * sizeof(double));
+        y = (double *) malloc(m->ranks[0] * m->ranks[0] * sizeof(double));
+        if (!x || !y) {
+                printf("Memory allocation error in check_hessian_symmetry.\n");
+                exit(1);
+        }
+        for (i=0; i < m->ranks[0]; i++) {
+                x[i] = 0;
+        }
+        j=0;
+        for (i=0; i < m->ranks[0]; i++) {
+                x[i] = 1;
+                calc_hessian_product(x, &y[j * m->ranks[0]], (void *)r);
+                j++;
+                x[i]= 0;
+        }
+        for (i=0; i < m->ranks[0]; i++) {
+                for (j=i+1; j < m->ranks[0]; j++) {
+                        h_ij = y[i * m->ranks[0] + j];
+                        h_ji = y[j * m->ranks[0] + i];
+                        if (abs(h_ij -  h_ji) > .00000001) {
+                                free(x);
+                                free(y);
+                                return 0;
+                        }
+                }
+        }
+        free(x);
+        free(y);
+        return 1;
+}
