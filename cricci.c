@@ -86,9 +86,6 @@ int check_hessian_symmetry(ricci_solver *r)
                                 free(y);
                                 return 0;
                         }
-                        if (h_ij != 0) {
-                                printf("h[%i,%i] = %f\n", i, j, h_ij);
-                        }
                 }
         }
         free(x);
