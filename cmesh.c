@@ -467,6 +467,13 @@ double calc_curvature(vertex *v)
         return 2*M_PI - (1 + v->boundary)*angle_sum;
 }
 
+void calc_edge_lengths(mesh *m) 
+{
+        int i;
+        for (i=0; i < m->ranks[1]; i++) {
+                calc_edge_length(&(m->edges[i]));
+        }
+}
 void calc_edge_length (edge *e)
 {
         double a, b, c, aa, bb;

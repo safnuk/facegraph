@@ -2,9 +2,9 @@
  */
 
 typedef enum {
-  RUNNING,
-  CONVERGENT,
-  TOO_MANY_ITERATIONS
+  TOO_MANY_ITERATIONS = -1,
+  RUNNING = 0,
+  CONVERGENT = 1,
 } ricci_state;
 
 /* Struct which encodes configuration information for the ricci
@@ -31,14 +31,18 @@ typedef struct {
   ricci_config *rc;
   double init_K_norm;
   double K_norm;
+  double step_norm;
+  double step_scale;
   int iteration;
   ricci_state status;
   double *s;
+  double *K;
+  double *step;
 } ricci_solver;
 
 
 void run_ricci_flow(mesh *m);
-void initialize_ricci_solver(ricci_solver *r, mesh *m);
+void initialize_ricci_solver(ricci_solver *r, mesh *m, ricci_config *rc);
 void deallocate_ricci_solver(ricci_solver *r);
 void calc_initial_variables(ricci_solver *r);
 void calc_flat_metric(ricci_solver *r);
@@ -48,5 +52,8 @@ int check_hessian_symmetry(ricci_solver *r);
 ricci_state convergence_test(ricci_solver *r);
 void update_hessian(ricci_solver *r);
 void calc_next_step(ricci_solver *r);
-void line_search(ricci_solver *r);
+void calc_line_search(ricci_solver *r);
+void print_ricci_status(ricci_solver *r);
+
+double sup_norm(double *v, int n);
 

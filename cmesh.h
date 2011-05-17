@@ -146,6 +146,7 @@ void calc_curvatures(mesh *m, double *K);
 void calc_inner_angles(mesh *m);
 double calc_curvature(vertex *v);
 double curvature_integrand(double s, void *instance);
+void calc_edge_lengths(mesh *m);
 void calc_edge_length (edge *e);
 double min(double *x, int n);
 double max(double *x, int n);

@@ -12,19 +12,31 @@
 void run_ricci_flow(mesh *m)
 {
         ricci_solver r;
-        initialize_ricci_solver(&r, m);
+        ricci_config rc;
+        initialize_ricci_solver(&r, m, &rc);
         calc_flat_metric(&r);
         deallocate_ricci_solver(&r);
 }
 
-void initialize_ricci_solver(ricci_solver *r, mesh *m)
+void initialize_ricci_solver(ricci_solver *r, mesh *m, ricci_config *rc)
 {
-        r->verbose = 2; // set to 2 for updates every iteration, 0 for no output
-        r->ds = 0.1; // step length for numerical integration
+        // set default configuration settings
+        rc->verbose = 2; // set to 2 for updates every iteration, 0 for no output
+        rc->ds = 0.1; // step length for numerical integration
+        rc->relative_error = 1.0e-6;
+        rc->absolute_error = 1.0e-12;
+        rc->wolfe_c1= 1.0e-4;
+        rc->wolfe_c2 = 0.9;
+        rc->max_iterations = 20;
         r->m = m;
+        r->rc = rc;
+        r->iteration = 0;
+        r->status = RUNNING;
         r->s = (double *)malloc(m->ranks[0] * sizeof(double));
-        if (r->s == NULL) {
-                printf("Memory allocation error.\n");
+        r->K = (double *)malloc(m->ranks[0] * sizeof(double));
+        r->step = (double *)malloc(m->ranks[0] * sizeof(double));
+        if (!r->s || !r->K || !r->step) {
+                printf("Memory allocation error in initialize_ricci_solver.\n");
                 exit(1);
         }
         calc_initial_variables(r);
@@ -33,6 +45,8 @@ void initialize_ricci_solver(ricci_solver *r, mesh *m)
 void deallocate_ricci_solver(ricci_solver *r)
 {
         free(r->s);
+        free(r->K);
+        free(r->step);
 }
 
 void calc_flat_metric(ricci_solver *r)
@@ -54,6 +68,11 @@ ricci_state convergence_test(ricci_solver *r)
         if (r->iteration > r->rc->max_iterations) {
                 r->status = TOO_MANY_ITERATIONS; 
         }
+        r->K_norm = sup_norm(r->K, r->m->ranks[0]);
+        if (r->K_norm < r->rc->relative_error * r->init_K_norm + r->rc->absolute_error) {
+                r->status = CONVERGENT;
+        }
+        print_ricci_status(r);
         return r->status;
 }
 
@@ -65,7 +84,7 @@ void calc_next_step(ricci_solver *r)
 {
 }
 
-void line_search(ricci_solver *r)
+void calc_line_search(ricci_solver *r)
 {
 }
 
@@ -109,7 +128,14 @@ void calc_initial_variables(ricci_solver *r)
         int i;
         for (i=0; i < r->m->ranks[0]; i++) {
                 r->s[i] = r->m->vertices[i].s;
+                r->step[i] = 0;
         }
+        calc_edge_lengths(r->m);
+        calc_curvatures(r->m, r->K);
+        r->init_K_norm = sup_norm(r->K, r->m->ranks[0]);
+        r->K_norm = r->init_K_norm;
+        r->step_norm = 0;
+        r->step_scale = 1;
 }
 
 int check_hessian_symmetry(ricci_solver *r)
@@ -148,4 +174,30 @@ int check_hessian_symmetry(ricci_solver *r)
         free(x);
         free(y);
         return 1;
+}
+
+void print_ricci_status(ricci_solver *r)
+{
+        if ((r->status != RUNNING) && (r->rc->verbose > 0)) {
+                printf("Ricci flow terminated after %i iterations with status code %i, ", r->iteration-1, 
+                                r->status);
+                printf("||K|| = %f, Step size = %f\n", r->K_norm, r->step_norm);
+        }
+        if ((r->status == RUNNING) && (r->rc->verbose == 2)) {
+                printf("Iteration %i: ||K|| = %f, Step size = %f, Step scale = %f\n",
+                     r->iteration-1, r->K_norm, r->step_norm, r->step_scale );
+        }
+}
+/* Calculates the sup-norm of the n-dimensional vector v. 
+ */
+double sup_norm(double *v, int n)
+{
+        int i;
+        double max = 0;
+        for (i=0; i<n; i++) {
+                if (abs(v[i]) > max) {
+                        max = abs(v[i]);
+                }
+        }
+        return max;
 }
