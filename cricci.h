@@ -21,6 +21,7 @@ typedef struct {
   double absolute_error;
   double wolfe_c1;
   double wolfe_c2;
+  int strong_wolfe;
   double ds;
   int max_iterations;
   int max_line_steps;
@@ -61,7 +62,15 @@ ricci_state convergence_test(ricci_solver *r);
 void update_hessian(ricci_solver *r);
 void calc_next_step(ricci_solver *r);
 void calc_line_search(ricci_solver *r);
+void calc_next_s(ricci_solver *r);
+int test_wolfe_conditions(ricci_solver *r);
+
 void print_ricci_status(ricci_solver *r);
 
+double vector_norm(double *v, int n);
 double sup_norm(double *v, int n);
-
+double l2_norm(double *v, int n);
+int vector_in_bounds(double *v, double min, double max, int n);
+void clear_vector(double *v, int n);
+void swap_vectors(double **v, double **w);
+double dot_product(double *v, double *w, int n);

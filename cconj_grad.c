@@ -103,7 +103,7 @@ void cg_solve(int (*A)(double *, double *, int, void *),
                         A(p, Ap, n, instance); // Ap = A(p)
                 }
                 r0_squared = r1_squared;
-                printf("CG iteration: %i  Error squared: %f\n", k, r1_squared);
+                // printf("CG iteration: %i  Error squared: %f\n", k, r1_squared);
         }
         free(Ap);
         free(p);

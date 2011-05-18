@@ -23,15 +23,16 @@ void initialize_ricci_solver(ricci_solver *r, mesh *m, ricci_config *rc)
 {
         // set default configuration settings
         rc->verbose = 2; // set to 2 for updates every iteration, 0 for no output
-        rc->ds = 0.1; // step length for numerical integration
-        rc->relative_error = 1.0e-6;
-        rc->absolute_error = 1.0e-12;
-        rc->wolfe_c1= 1.0e-4;
+        rc->ds = 0.001; // step length for numerical integration
+        rc->relative_error = 1.0e-12;
+        rc->absolute_error = 1.0e-13;
+        rc->wolfe_c1= 1.0e-8;
         rc->wolfe_c2 = 0.9;
-        rc->max_iterations = 20;
+        rc->strong_wolfe = 1;  // 0 for regular Wolfe conditions, 1 for strong
+        rc->max_iterations = 40;
         rc->max_line_steps = 10;
-        rc->cg_max_iterations = 50;
-        rc->cg_tolerance = 1.0e-4;
+        rc->cg_max_iterations = 5000;
+        rc->cg_tolerance = 1.0e-8;
         r->m = m;
         r->rc = rc;
         r->iteration = 0;
@@ -76,8 +77,8 @@ ricci_state convergence_test(ricci_solver *r)
         if (r->iteration > r->rc->max_iterations) {
                 r->status = TOO_MANY_ITERATIONS; 
         }
-        r->K_norm = sup_norm(r->K, r->m->ranks[0]);
-        r->step_norm = sup_norm(r->step, r->m->ranks[0]);
+        r->K_norm = vector_norm(r->K, r->m->ranks[0]);
+        r->step_norm = vector_norm(r->step, r->m->ranks[0]);
         if (r->K_norm < r->rc->relative_error * r->init_K_norm + r->rc->absolute_error) {
                 r->status = CONVERGENT;
         }
@@ -97,7 +98,7 @@ void update_hessian(ricci_solver *r)
  */
 void calc_next_step(ricci_solver *r)
 {
-        clear_vector(r->step, r->m->ranks[0]);
+        // clear_vector(r->step, r->m->ranks[0]);
         cg_solve(&calc_hessian_product, r->step, r->K, r->rc->cg_tolerance,
                         r->m->ranks[0], r->rc->cg_max_iterations, 
                         (void *)r);
@@ -124,8 +125,8 @@ void calc_line_search(ricci_solver *r)
         r->f = r->m->f;
         while (!wolfe_conditions_verified && (i < r->rc->max_line_steps)) {
                 r->step_scale *= 0.5; 
-                calc_next_step(r);
-                if (vector_in_bounds(s_next, 0, 1, r->m->ranks[0])) {
+                calc_next_s(r);
+                if (vector_in_bounds(r->s_next, 0, 1, r->m->ranks[0])) {
                         r->f_next = update_f_and_s(r->m, r->s_next, r->rc->ds);
                         calc_curvatures(r->m, r->K_next);
                         wolfe_conditions_verified = test_wolfe_conditions(r);
@@ -138,8 +139,57 @@ void calc_line_search(ricci_solver *r)
         }
         // Make the next-step quantities the current values
         r->f = r->f_next;
-        swap_vectors(r->K, r->K_next, r->m->ranks[0]);
-        swap_vectors(r->s, r->s_next, r->m->ranks[0]);
+        swap_vectors(&(r->K), &(r->K_next));
+        swap_vectors(&(r->s), &(r->s_next));
+}
+
+/* Calculates the new value for the radius parameters,
+ * by the formula
+ *      s_next = s * exp(-(1/2)^j step)
+ *
+ * This is because the gradient descent variables are
+ * u, with s = exp(u), hence
+ *      u_next = u - lambda * step
+ * translates into the above formula.
+ * The minus sign comes from solving the equation
+ *  H * step = K (should solve H * step = - K
+ *  for Newton's method).
+ */
+void calc_next_s(ricci_solver *r)
+{
+        int i;
+        for (i=0; i < r->m->ranks[0]; i++) {
+                r->s_next[i] = r->s[i] * exp(-1 * r->step_scale * r->step[i]);
+        }
+}
+
+/* Checks if Wolfe conditions are satisfied for the line search
+ * being performed. Note that signs are opposite of the usual
+ * because the step vector is multiplied by -1.
+ *
+ * Returns 1 if Wolfe conditions are satisfied, 0 otherwise.
+ */
+int test_wolfe_conditions(ricci_solver *r)
+{
+        int n = r->m->ranks[0];
+        /*
+        if ((r->f - r->f_next) < (r->rc->wolfe_c1 * r->step_scale 
+                         * dot_product(r->step, r->K, n))) {
+                return 0;
+        }
+        */
+        if (r->rc->strong_wolfe) {
+                if (fabs(dot_product(r->step, r->K_next, n)) >
+                                r->rc->wolfe_c2 * fabs(dot_product(r->step, r->K, n))) {
+                        return 0;
+                }
+        } else {
+                if (dot_product(r->step, r->K_next, n) >
+                        r->rc->wolfe_c2 * dot_product(r->step, r->K, n)) {
+                        return 0;
+                }
+        }
+        return 1;
 }
 
 /* Calculates the product H*x and returns the result in y,
@@ -186,7 +236,7 @@ void calc_initial_variables(ricci_solver *r)
         }
         calc_edge_lengths(r->m);
         calc_curvatures(r->m, r->K);
-        r->init_K_norm = sup_norm(r->K, r->m->ranks[0]);
+        r->init_K_norm = vector_norm(r->K, r->m->ranks[0]);
         r->K_norm = r->init_K_norm;
         r->step_norm = 0;
         r->step_scale = 1;
@@ -218,7 +268,7 @@ int check_hessian_symmetry(ricci_solver *r)
                 for (j=i+1; j < m->ranks[0]; j++) {
                         h_ij = y[i * m->ranks[0] + j];
                         h_ji = y[j * m->ranks[0] + i];
-                        if (abs(h_ij -  h_ji) > .00000001) {
+                        if (fabs(h_ij -  h_ji) > .00000001) {
                                 free(x);
                                 free(y);
                                 return 0;
@@ -235,11 +285,13 @@ void print_ricci_status(ricci_solver *r)
         if ((r->status != RUNNING) && (r->rc->verbose > 0)) {
                 printf("Ricci flow terminated after %i iterations with status code %i, ", r->iteration-1, 
                                 r->status);
-                printf("||K|| = %f, Step size = %f\n", r->K_norm, r->step_norm);
+                printf("||K|| = %e, K_max = %e, Step size = %f, f = %f\n", r->K_norm, 
+                                sup_norm(r->K, r->m->ranks[0]), r->step_norm, r->m->f);
         }
-        if ((r->status == RUNNING) && (r->rc->verbose == 2)) {
-                printf("Iteration %i: ||K|| = %f, Step size = %f, Step scale = %f\n",
-                     r->iteration-1, r->K_norm, r->step_norm, r->step_scale );
+        if ((r->status == RUNNING) && (r->rc->verbose >= 2)) {
+                printf("Iteration %i: ||K|| = %e, K_max = %e, Step size = %f, Step scale = %f, f = %f\n",
+                     r->iteration-1, r->K_norm, 
+                     sup_norm(r->K, r->m->ranks[0]), r->step_norm, r->step_scale, r->m->f);
         }
 }
 /* Calculates the sup-norm of the n-dimensional vector v. 
@@ -249,9 +301,66 @@ double sup_norm(double *v, int n)
         int i;
         double max = 0;
         for (i=0; i<n; i++) {
-                if (abs(v[i]) > max) {
-                        max = abs(v[i]);
+                if (fabs(v[i]) > max) {
+                        max = fabs(v[i]);
                 }
         }
         return max;
+}
+
+double l2_norm(double *v, int n)
+{
+        return sqrt(dot_product(v, v, n));
+}
+
+double vector_norm(double *v, int n)
+{
+        return l2_norm(v, n);
+}
+
+/* Returns true if every entry of the vector satisfies
+ *              min < v[i] < max.
+ *  Returns false otherwise.
+ */
+int vector_in_bounds(double *v, double min, double max, int n)
+{
+        int i;
+        for (i=0; i<n; i++) {
+                if (v[i] <= min || v[i] >= max) {
+                        return 0;
+                }
+        }
+        return 1;
+}
+
+/* Sets the entries of the vector v to 0.
+ */
+void clear_vector(double *v, int n)
+{
+        int i;
+        for (i=0; i<n; i++) {
+                v[i] = 0;
+        }
+}
+
+/* Performs an in-place swap of vectors v and w.
+ */
+void swap_vectors(double **v, double **w)
+{
+        double *u;
+        u = *v;
+        *v = *w;
+        *w = u;
+}
+
+/* Calculates the dot product of vectors v and w.
+ */
+double dot_product(double *v, double *w, int n)
+{
+        int i;
+        double sum=0;
+        for (i=0; i<n; i++) {
+                sum += v[i] * w[i];
+        }
+        return sum;
 }
