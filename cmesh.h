@@ -141,7 +141,7 @@ int get_vertex_position_in_triangle(vertex *v, triangle *t);
 point* get_coordinate(mesh *m, vertex *v);
 
 double calc_distance(point *p1, point *p2);
-double update_f_and_s(mesh *m, double *s, double ds);
+double update_f_and_s(mesh *m, double *s, int n);
 void calc_curvatures(mesh *m, double *K);
 void calc_inner_angles(mesh *m);
 double calc_curvature(vertex *v);

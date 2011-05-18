@@ -23,7 +23,7 @@ void initialize_ricci_solver(ricci_solver *r, mesh *m, ricci_config *rc)
 {
         // set default configuration settings
         rc->verbose = 2; // set to 2 for updates every iteration, 0 for no output
-        rc->ds = 0.001; // step length for numerical integration
+        rc->integration_precision = 30; // number of subdivisions for simpson's integration
         rc->relative_error = 1.0e-12;
         rc->absolute_error = 1.0e-13;
         rc->wolfe_c1= 1.0e-8;
@@ -31,8 +31,8 @@ void initialize_ricci_solver(ricci_solver *r, mesh *m, ricci_config *rc)
         rc->strong_wolfe = 1;  // 0 for regular Wolfe conditions, 1 for strong
         rc->max_iterations = 40;
         rc->max_line_steps = 10;
-        rc->cg_max_iterations = 5000;
-        rc->cg_tolerance = 1.0e-8;
+        rc->cg_max_iterations = 500;
+        rc->cg_tolerance = 1.0e-4;
         r->m = m;
         r->rc = rc;
         r->iteration = 0;
@@ -127,7 +127,7 @@ void calc_line_search(ricci_solver *r)
                 r->step_scale *= 0.5; 
                 calc_next_s(r);
                 if (vector_in_bounds(r->s_next, 0, 1, r->m->ranks[0])) {
-                        r->f_next = update_f_and_s(r->m, r->s_next, r->rc->ds);
+                        r->f_next = update_f_and_s(r->m, r->s_next, r->rc->integration_precision);
                         calc_curvatures(r->m, r->K_next);
                         wolfe_conditions_verified = test_wolfe_conditions(r);
                 }
@@ -172,12 +172,10 @@ void calc_next_s(ricci_solver *r)
 int test_wolfe_conditions(ricci_solver *r)
 {
         int n = r->m->ranks[0];
-        /*
         if ((r->f - r->f_next) < (r->rc->wolfe_c1 * r->step_scale 
                          * dot_product(r->step, r->K, n))) {
                 return 0;
         }
-        */
         if (r->rc->strong_wolfe) {
                 if (fabs(dot_product(r->step, r->K_next, n)) >
                                 r->rc->wolfe_c2 * fabs(dot_product(r->step, r->K, n))) {

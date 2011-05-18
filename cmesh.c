@@ -365,17 +365,22 @@ double calc_distance(point *p1, point *p2)
  * be numerically estimated, the updates to s occurs
  * in stages to allow for Simpson's rule to be used.
  *
+ * n is the goal number of divisions for the integration
+ * domain.
+ *
  * Function returns the updated value for f(s).
  */
-double update_f_and_s(mesh *m,  double *s, double ds)
+double update_f_and_s(mesh *m,  double *s, int n)
 {
         int i;
         double s1, s0;
+        double ds;
         vertex *v;
         for (i=0; i < m->ranks[0]; i++) {
                 v = &(m->vertices[i]);
                 s0 = v->s;
                 s1 = s[i];
+                ds = fabs(s1 - s0) / n;
                 m->f += integrate(&curvature_integrand, s0, s1, ds, (void *)v);
         }
         return m->f;

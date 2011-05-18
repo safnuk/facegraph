@@ -22,7 +22,7 @@ typedef struct {
   double wolfe_c1;
   double wolfe_c2;
   int strong_wolfe;
-  double ds;
+  int integration_precision;
   int max_iterations;
   int max_line_steps;
   int cg_max_iterations;
