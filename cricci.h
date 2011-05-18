@@ -2,7 +2,8 @@
  */
 
 typedef enum {
-  TOO_MANY_ITERATIONS = -1,
+  TOO_MANY_ITERATIONS = -100,
+  LINE_SEARCH_FAILED = -99,
   RUNNING = 0,
   CONVERGENT = 1,
 } ricci_state;
@@ -22,6 +23,7 @@ typedef struct {
   double wolfe_c2;
   double ds;
   int max_iterations;
+  int max_line_steps;
   int cg_max_iterations;
   double cg_tolerance;
   int verbose;
@@ -37,8 +39,12 @@ typedef struct {
   double step_scale;
   int iteration;
   ricci_state status;
+  double f;
+  double f_next;
   double *s;
+  double *s_next;
   double *K;
+  double *K_next;
   double *step;
 } ricci_solver;
 

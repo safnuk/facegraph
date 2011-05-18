@@ -359,19 +359,15 @@ double calc_distance(point *p1, point *p2)
         return sqrt(sum);
 }
 
-/* Changes the s parameters at all vertices to e^u.
+/* Changes the s parameters at all vertices to the passed values.
  * Also calculates f at the new parameter values.
  * Since f is defined by an integral which can only
  * be numerically estimated, the updates to s occurs
  * in stages to allow for Simpson's rule to be used.
  *
- * If an invalid value for u is passes (>= 0) then
- * the function resets s to its original value (before Ricci
- * flow started).
- *
- * Function returns the updated value for f(u).
+ * Function returns the updated value for f(s).
  */
-double update_f_and_s(mesh *m,  double *u, double ds)
+double update_f_and_s(mesh *m,  double *s, double ds)
 {
         int i;
         double s1, s0;
@@ -379,7 +375,7 @@ double update_f_and_s(mesh *m,  double *u, double ds)
         for (i=0; i < m->ranks[0]; i++) {
                 v = &(m->vertices[i]);
                 s0 = v->s;
-                s1 = exp(u[i]);
+                s1 = s[i];
                 m->f += integrate(&curvature_integrand, s0, s1, ds, (void *)v);
         }
         return m->f;

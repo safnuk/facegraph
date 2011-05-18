@@ -29,6 +29,7 @@ void initialize_ricci_solver(ricci_solver *r, mesh *m, ricci_config *rc)
         rc->wolfe_c1= 1.0e-4;
         rc->wolfe_c2 = 0.9;
         rc->max_iterations = 20;
+        rc->max_line_steps = 10;
         rc->cg_max_iterations = 50;
         rc->cg_tolerance = 1.0e-4;
         r->m = m;
@@ -36,9 +37,11 @@ void initialize_ricci_solver(ricci_solver *r, mesh *m, ricci_config *rc)
         r->iteration = 0;
         r->status = RUNNING;
         r->s = (double *)malloc(m->ranks[0] * sizeof(double));
+        r->s_next = (double *)malloc(m->ranks[0] * sizeof(double));
         r->K = (double *)malloc(m->ranks[0] * sizeof(double));
+        r->K_next = (double *)malloc(m->ranks[0] * sizeof(double));
         r->step = (double *)malloc(m->ranks[0] * sizeof(double));
-        if (!r->s || !r->K || !r->step) {
+        if (!r->s || !r->K || !r->K_next || !r->step || !r->s_next) {
                 printf("Memory allocation error in initialize_ricci_solver.\n");
                 exit(1);
         }
@@ -48,7 +51,9 @@ void initialize_ricci_solver(ricci_solver *r, mesh *m, ricci_config *rc)
 void deallocate_ricci_solver(ricci_solver *r)
 {
         free(r->s);
+        free(r->s_next);
         free(r->K);
+        free(r->K_next);
         free(r->step);
 }
 
@@ -85,15 +90,56 @@ void update_hessian(ricci_solver *r)
         calc_hessian(r->m);
 }
 
+/* Use conjugate gradient method to solve the equation
+ *      H step = K
+ * This gives the direction to change the radii parameters which
+ * most quickly approaches the minimium of f (where curvature is 0).
+ */
 void calc_next_step(ricci_solver *r)
 {
+        clear_vector(r->step, r->m->ranks[0]);
         cg_solve(&calc_hessian_product, r->step, r->K, r->rc->cg_tolerance,
                         r->m->ranks[0], r->rc->cg_max_iterations, 
                         (void *)r);
 }
 
+/* Perform a line search in the direction found by calc_next_step.
+ * Primarily, this is to ensure
+ * (a) That the step keeps the s-variables in the proper bounds
+ *     (between 0 and 1).
+ *
+ * (b) Wolfe conditions are satisfied (to ensure convergence of
+ *     the algorithm).
+ *
+ * The step direction is scaled by factors of (1/2)^i until both
+ * (a) and (b) are met. If this does not happen within the max
+ * number of iterations allowed, the status of ricci_solver is
+ * updated accordingly.
+ */
 void calc_line_search(ricci_solver *r)
 {
+        int i=0;
+        int wolfe_conditions_verified=0;
+        r->step_scale = 2;
+        r->f = r->m->f;
+        while (!wolfe_conditions_verified && (i < r->rc->max_line_steps)) {
+                r->step_scale *= 0.5; 
+                calc_next_step(r);
+                if (vector_in_bounds(s_next, 0, 1, r->m->ranks[0])) {
+                        r->f_next = update_f_and_s(r->m, r->s_next, r->rc->ds);
+                        calc_curvatures(r->m, r->K_next);
+                        wolfe_conditions_verified = test_wolfe_conditions(r);
+                }
+                i++;
+        }
+        if (!wolfe_conditions_verified) {
+                r->status = LINE_SEARCH_FAILED;
+                return;
+        }
+        // Make the next-step quantities the current values
+        r->f = r->f_next;
+        swap_vectors(r->K, r->K_next, r->m->ranks[0]);
+        swap_vectors(r->s, r->s_next, r->m->ranks[0]);
 }
 
 /* Calculates the product H*x and returns the result in y,
