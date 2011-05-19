@@ -36,6 +36,7 @@ typedef struct {
   ricci_config *rc;
   double init_K_norm;
   double K_norm;
+  double K_supnorm;
   double step_norm;
   double step_scale;
   int iteration;

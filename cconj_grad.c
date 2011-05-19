@@ -65,6 +65,9 @@ int main(int argc, char *argv[])
  * with A(x, y, n, instance) computing A(x) and storing the result in y. 
  *
  * instance is a pointer to user-defined data which is used by A.
+ *
+ * Setting max_iterations to 0 means that the algorithm runs until
+ * it converges.
  */
 void cg_solve(int (*A)(double *, double *, int, void *), 
                 double *x, double *b, double tolerance, 
@@ -90,8 +93,10 @@ void cg_solve(int (*A)(double *, double *, int, void *),
         A(p, Ap, n, instance);  // Ap = A(p);
         r0_squared = dot(r0, r0, n);
         initial_residue = r0_squared;
-        while (r0_squared > tolerance * initial_residue && k < max_iterations) {
-                k++;
+        while (r0_squared > tolerance * initial_residue && k <= max_iterations) {
+                if (max_iterations > 0) {
+                        k++;
+                }
                 alpha = r0_squared / dot(p, Ap, n);
                 scale_and_add(x, x, alpha, p, n); // x = x + alpha p
                 scale_and_add(r1, r0, -1*alpha, Ap, n); // r1=r0-alpha A(p)
@@ -130,7 +135,7 @@ void pccg_solve(int (*A)(double *, double *, int, void *),
                 int n, int max_iterations, void *instance)
 {
         int i;
-        double *r0, *r1, *p, *Ap, *precon;
+        double *r0, *r1, *p, *Ap, *z0, *z1;
         int k = 0;
         double alpha, beta;
         double r1_squared, r0_squared, initial_residue;
@@ -138,8 +143,9 @@ void pccg_solve(int (*A)(double *, double *, int, void *),
         r1 = (double *)malloc(n * sizeof(double));
         p = (double *)malloc(n * sizeof(double));
         Ap = (double *)malloc(n * sizeof(double));
-        precon = (double *)malloc(n * sizeof(double));
-        if(!r0 || !r1 || !p || !Ap || !precon) {
+        z0 = (double *)malloc(n * sizeof(double));
+        z1 = (double *)malloc(n * sizeof(double));
+        if(!r0 || !r1 || !p || !Ap || !z0 || !z1) {
                 printf("Memory allocation error.\n");
                 exit(1);
         }

@@ -24,15 +24,15 @@ void initialize_ricci_solver(ricci_solver *r, mesh *m, ricci_config *rc)
         // set default configuration settings
         rc->verbose = 3; // set to 2 for updates every iteration, 0 for no output
         rc->integration_precision = 30; // number of subdivisions for simpson's integration
-        rc->relative_error = 1.0e-12;
-        rc->absolute_error = 1.0e-12;
+        rc->relative_error = 1.0e-11;
+        rc->absolute_error = 1.0e-11;
         rc->wolfe_c1= 1.0e-4;
         rc->wolfe_c2 = 0.9;
-        rc->strong_wolfe = 1;  // 0 for regular Wolfe conditions, 1 for strong
-        rc->max_iterations = 80;
-        rc->max_line_steps = 10;
-        rc->cg_max_iterations = 500;
-        rc->cg_tolerance = 1.0e-4;
+        rc->strong_wolfe = 0;  // 0 for regular Wolfe conditions, 1 for strong
+        rc->max_iterations = 30;
+        rc->max_line_steps = 25;
+        rc->cg_max_iterations = 0;
+        rc->cg_tolerance = 1.0e-12;
         r->m = m;
         r->rc = rc;
         r->iteration = 0;
@@ -98,8 +98,9 @@ void update_hessian(ricci_solver *r)
  */
 void calc_next_step(ricci_solver *r)
 {
-        // clear_vector(r->step, r->m->ranks[0]);
-        cg_solve(&calc_hessian_product, r->step, r->K, r->rc->cg_tolerance,
+        clear_vector(r->step, r->m->ranks[0]);
+        cg_solve(&calc_hessian_product, r->step, r->K, 
+                        r->rc->cg_tolerance,
                         r->m->ranks[0], r->rc->cg_max_iterations, 
                         r->rc->verbose - 2,
                         (void *)r);
@@ -123,10 +124,11 @@ void calc_line_search(ricci_solver *r)
         int i=0;
         int wolfe_conditions_verified=0;
         r->step_scale = 2;
+        r->K_supnorm = sup_norm(r->K, r->m->ranks[0]);
         while (!wolfe_conditions_verified && (i < r->rc->max_line_steps)) {
                 r->step_scale *= 0.5; 
                 calc_next_s(r);
-                if (vector_in_bounds(r->s_next, 0, 1, r->m->ranks[0])) {
+                if (vector_in_bounds(r->s_next, 1.0e-14, 1-1.0e-14, r->m->ranks[0])) {
                         update_s_and_edge_lengths(r->m, r->s_next);
                         calc_curvatures(r->m, r->K_next);
                         wolfe_conditions_verified = test_wolfe_conditions(r);
@@ -171,6 +173,11 @@ void calc_next_s(ricci_solver *r)
 int test_wolfe_conditions(ricci_solver *r)
 {
         int n = r->m->ranks[0];
+        double K_next_supnorm = sup_norm(r->K_next, n);
+        if (K_next_supnorm >= r->K_supnorm) {
+                return 0;
+        }
+        /*
         if (r->rc->strong_wolfe) {
                 if (fabs(dot_product(r->step, r->K_next, n)) >
                                 r->rc->wolfe_c2 * fabs(dot_product(r->step, r->K, n))) {
@@ -182,6 +189,7 @@ int test_wolfe_conditions(ricci_solver *r)
                         return 0;
                 }
         }
+        */
         return 1;
 }
 
