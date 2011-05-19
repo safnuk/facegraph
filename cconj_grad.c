@@ -4,6 +4,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 #include "cconj_grad.h"
 
 /*
@@ -67,7 +68,7 @@ int main(int argc, char *argv[])
  */
 void cg_solve(int (*A)(double *, double *, int, void *), 
                 double *x, double *b, double tolerance, 
-                int n, int max_iterations, void *instance)
+                int n, int max_iterations, int verbose, void *instance)
 {
         int i;
         double *r0, *r1, *p, *Ap;
@@ -103,7 +104,12 @@ void cg_solve(int (*A)(double *, double *, int, void *),
                         A(p, Ap, n, instance); // Ap = A(p)
                 }
                 r0_squared = r1_squared;
-                // printf("CG iteration: %i  Error squared: %f\n", k, r1_squared);
+                if (verbose >= 2) {
+                        printf("CG iteration: %i  Error squared: %f\n", k, r1_squared);
+                }
+        }
+        if (verbose >= 1) {
+                printf("CG terminated after %i iterations with error of %e.\n", k, sqrt(r1_squared));
         }
         free(Ap);
         free(p);

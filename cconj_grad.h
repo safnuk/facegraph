@@ -10,7 +10,7 @@ void initialize_preconditioner(double *precon,
     int n, void *instance);
 void cg_solve(int (*A)(double *, double *, int, void *), 
     double *x, double *b, double tolerance, int n, 
-    int max_iterations, void *instance);
+    int max_iterations, int verbose, void *instance);
 void scale_and_add(double *x, double *b, double alpha, double *c, int n);
 double dot(double *x, double *y, int n);
 void swap(double **r0, double **r1);

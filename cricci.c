@@ -22,14 +22,14 @@ void run_ricci_flow(mesh *m)
 void initialize_ricci_solver(ricci_solver *r, mesh *m, ricci_config *rc)
 {
         // set default configuration settings
-        rc->verbose = 2; // set to 2 for updates every iteration, 0 for no output
+        rc->verbose = 3; // set to 2 for updates every iteration, 0 for no output
         rc->integration_precision = 30; // number of subdivisions for simpson's integration
         rc->relative_error = 1.0e-12;
-        rc->absolute_error = 1.0e-13;
-        rc->wolfe_c1= 1.0e-8;
+        rc->absolute_error = 1.0e-12;
+        rc->wolfe_c1= 1.0e-4;
         rc->wolfe_c2 = 0.9;
         rc->strong_wolfe = 1;  // 0 for regular Wolfe conditions, 1 for strong
-        rc->max_iterations = 40;
+        rc->max_iterations = 80;
         rc->max_line_steps = 10;
         rc->cg_max_iterations = 500;
         rc->cg_tolerance = 1.0e-4;
@@ -101,6 +101,7 @@ void calc_next_step(ricci_solver *r)
         // clear_vector(r->step, r->m->ranks[0]);
         cg_solve(&calc_hessian_product, r->step, r->K, r->rc->cg_tolerance,
                         r->m->ranks[0], r->rc->cg_max_iterations, 
+                        r->rc->verbose - 2,
                         (void *)r);
 }
 
@@ -122,12 +123,11 @@ void calc_line_search(ricci_solver *r)
         int i=0;
         int wolfe_conditions_verified=0;
         r->step_scale = 2;
-        r->f = r->m->f;
         while (!wolfe_conditions_verified && (i < r->rc->max_line_steps)) {
                 r->step_scale *= 0.5; 
                 calc_next_s(r);
                 if (vector_in_bounds(r->s_next, 0, 1, r->m->ranks[0])) {
-                        r->f_next = update_f_and_s(r->m, r->s_next, r->rc->integration_precision);
+                        update_s_and_edge_lengths(r->m, r->s_next);
                         calc_curvatures(r->m, r->K_next);
                         wolfe_conditions_verified = test_wolfe_conditions(r);
                 }
@@ -138,7 +138,6 @@ void calc_line_search(ricci_solver *r)
                 return;
         }
         // Make the next-step quantities the current values
-        r->f = r->f_next;
         swap_vectors(&(r->K), &(r->K_next));
         swap_vectors(&(r->s), &(r->s_next));
 }
@@ -172,10 +171,6 @@ void calc_next_s(ricci_solver *r)
 int test_wolfe_conditions(ricci_solver *r)
 {
         int n = r->m->ranks[0];
-        if ((r->f - r->f_next) < (r->rc->wolfe_c1 * r->step_scale 
-                         * dot_product(r->step, r->K, n))) {
-                return 0;
-        }
         if (r->rc->strong_wolfe) {
                 if (fabs(dot_product(r->step, r->K_next, n)) >
                                 r->rc->wolfe_c2 * fabs(dot_product(r->step, r->K, n))) {
@@ -283,13 +278,13 @@ void print_ricci_status(ricci_solver *r)
         if ((r->status != RUNNING) && (r->rc->verbose > 0)) {
                 printf("Ricci flow terminated after %i iterations with status code %i, ", r->iteration-1, 
                                 r->status);
-                printf("||K|| = %e, K_max = %e, Step size = %f, f = %f\n", r->K_norm, 
-                                sup_norm(r->K, r->m->ranks[0]), r->step_norm, r->m->f);
+                printf("||K|| = %e, K_max = %e, Step size = %f\n", r->K_norm, 
+                                sup_norm(r->K, r->m->ranks[0]), r->step_norm);
         }
         if ((r->status == RUNNING) && (r->rc->verbose >= 2)) {
-                printf("Iteration %i: ||K|| = %e, K_max = %e, Step size = %f, Step scale = %f, f = %f\n",
+                printf("Iteration %i: ||K|| = %e, K_max = %e, Step size = %f, Step scale = %f\n",
                      r->iteration-1, r->K_norm, 
-                     sup_norm(r->K, r->m->ranks[0]), r->step_norm, r->step_scale, r->m->f);
+                     sup_norm(r->K, r->m->ranks[0]), r->step_norm, r->step_scale);
         }
 }
 /* Calculates the sup-norm of the n-dimensional vector v. 

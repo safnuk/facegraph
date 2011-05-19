@@ -386,6 +386,19 @@ double update_f_and_s(mesh *m,  double *s, int n)
         return m->f;
 }
 
+/* Updates the radius parameters of all vertices to the 
+ * passed values. Also recalculates the edge lengths
+ * using the new radii.
+ */
+void update_s_and_edge_lengths(mesh *m, double *s)
+{
+        int i;
+        for (i=0; i < m->ranks[0]; i++) {
+                m->vertices[i].s = s[i];
+        }
+        calc_edge_lengths(m);
+}
+
 /* Callback function used to integrate curvatures. After calling,
  * the s parameter of the vertex will be updated to s, and the lengths
  * of all incident edges will be recalculated accordingly.
