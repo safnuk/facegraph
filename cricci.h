@@ -26,6 +26,7 @@ typedef struct {
   int max_iterations;
   int max_line_steps;
   int cg_max_iterations;
+  int cg_precon;
   double cg_tolerance;
   int verbose;
 } ricci_config;

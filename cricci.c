@@ -31,8 +31,9 @@ void initialize_ricci_solver(ricci_solver *r, mesh *m, ricci_config *rc)
         rc->strong_wolfe = 0;  // 0 for regular Wolfe conditions, 1 for strong
         rc->max_iterations = 30;
         rc->max_line_steps = 25;
-        rc->cg_max_iterations = 0;
-        rc->cg_tolerance = 1.0e-12;
+        rc->cg_max_iterations = 0; // 0 for no max number of iterations
+        rc->cg_precon = 0;  // 1 for Jacobi preconditioning, 0 for no precon.
+        rc->cg_tolerance = 1.0e-8;
         r->m = m;
         r->rc = rc;
         r->iteration = 0;
@@ -99,11 +100,19 @@ void update_hessian(ricci_solver *r)
 void calc_next_step(ricci_solver *r)
 {
         clear_vector(r->step, r->m->ranks[0]);
-        cg_solve(&calc_hessian_product, r->step, r->K, 
+        if (r->rc->cg_precon) {
+                pccg_solve(&calc_hessian_product, r->step, r->K, 
                         r->rc->cg_tolerance,
                         r->m->ranks[0], r->rc->cg_max_iterations, 
                         r->rc->verbose - 2,
                         (void *)r);
+        } else {
+                cg_solve(&calc_hessian_product, r->step, r->K, 
+                        r->rc->cg_tolerance,
+                        r->m->ranks[0], r->rc->cg_max_iterations, 
+                        r->rc->verbose - 2,
+                        (void *)r);
+        }
 }
 
 /* Perform a line search in the direction found by calc_next_step.
