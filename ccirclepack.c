@@ -5,6 +5,9 @@
 #include <lbfgs.h>
 #include <math.h>
 #include "cfile_io.h"
+#include "coord_double.h"
+#include "comprow_double.h"
+#include "mvblasd.h"
 #include "cmesh.h"
 #include "ccirclepack.h"
 

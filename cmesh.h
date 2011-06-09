@@ -118,6 +118,7 @@ typedef struct {
         edge *edges;
         triangle *triangles;
         point *coordinates;
+        CompRow_Mat_double hessian;
 } mesh;
 
 int initialize_mesh(mesh *m, filedata *fd);

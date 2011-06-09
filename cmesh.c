@@ -3,7 +3,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-// #include <lbfgs.h>
+
+#include "coord_double.h"
+#include "comprow_double.h"
+#include "mvblasd.h"
+
 #include "cfile_io.h"
 #include "csimpson.h"
 #include "cmesh.h"
@@ -516,7 +520,9 @@ void calc_hessian(mesh *m)
         double dl_ds[3][3];
         double ds_du[3][3];
         triangle *t;
-        int i;
+        int i, j, k, l, count;
+        vertex *v, *v1;
+
         for (i=0; i < m->ranks[2]; i++) {
                 t = &(m->triangles[i]);
                 calc_dtheta_dl(t, dtheta_dl);
@@ -525,6 +531,37 @@ void calc_hessian(mesh *m)
                 calc_3_matrix_product(dtheta_dl, dl_ds, ds_du,
                                 t->hessian);
         }
+
+        int nz = calc_number_of_nonzero_hessian_entries(m);
+        double *val = (double *)malloc(nz * sizeof(double));
+        int *row_ind = (int *)malloc(nz * sizeof(int));
+        int *col_ind = (int *)malloc(nz * sizeof(int));
+        if (!val || !row_ind || !col_ind) {
+                printf("Memory allocation error in calc_hessian.\n");
+                exit(1);
+        }
+        count = 0;
+        for (i=0; i < m->ranks[0]; i++) {
+                v = &(m->vertices[i]);
+                for (j=0; j < v->degree - v->boundary; j++) {
+                        t = (triangle *)(v->incident_triangles[j]);
+                        for (k=0; k<3; k++) {
+                                v1 = (vertex *)(t->vertices[k]);
+                                l = v1->index;
+                                val[count] = *(v->dtheta_du[j][k]);
+                                row_ind[count] = i;
+                                col_ind[count] = l;
+                                count++;
+                        }
+                }
+        }
+        Coord_Mat_double A(m->ranks[0], m->ranks[0], nz, val, row_ind, col_ind);
+        m->hessian = A;
+
+        free(val);
+        free(row_ind);
+        free(col_ind);
+
 }
 
 /* Calculate the matrix of derivatives [d theta/dl],

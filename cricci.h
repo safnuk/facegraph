@@ -69,9 +69,7 @@ int test_wolfe_conditions(ricci_solver *r);
 
 void print_ricci_status(ricci_solver *r);
 
-double vector_norm(double *v, int n);
-double sup_norm(double *v, int n);
-double l2_norm(double *v, int n);
+double sup_norm(const MV_Vector_double &x);
 int vector_in_bounds(double *v, double min, double max, int n);
 void clear_vector(double *v, int n);
 void swap_vectors(double **v, double **w);

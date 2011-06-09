@@ -6,6 +6,9 @@
 #include <math.h>
 #include "csimpson.h"
 #include "cfile_io.h"
+#include "coord_double.h"
+#include "comprow_double.h"
+#include "mvblasd.h"
 #include "cmesh.h"
 #include "cconj_grad.h"
 #include "cricci.h"
@@ -306,27 +309,16 @@ void print_ricci_status(ricci_solver *r)
 }
 /* Calculates the sup-norm of the n-dimensional vector v. 
  */
-double sup_norm(double *v, int n)
+double sup_norm(const MV_Vector_double &x)
 {
-        int i;
-        double max = 0;
-        for (i=0; i<n; i++) {
-                if (fabs(v[i]) > max) {
-                        max = fabs(v[i]);
-                }
-        }
-        return max;
+  double temp = 0;
+  for (int i=0; i<x.size(); i++) {
+    if (temp < fabs(x(i)))
+      temp = fabs(x(i));
+  }
+  return temp;
 }
 
-double l2_norm(double *v, int n)
-{
-        return sqrt(dot_product(v, v, n));
-}
-
-double vector_norm(double *v, int n)
-{
-        return l2_norm(v, n);
-}
 
 /* Returns true if every entry of the vector satisfies
  *              min < v[i] < max.
