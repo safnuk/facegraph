@@ -5,7 +5,7 @@ typedef enum {
   TOO_MANY_ITERATIONS = -100,
   LINE_SEARCH_FAILED = -99,
   RUNNING = 0,
-  CONVERGENT = 1,
+  CONVERGENT = 1
 } ricci_state;
 
 /* Struct which encodes configuration information for the ricci
