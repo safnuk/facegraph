@@ -511,7 +511,7 @@ void calc_edge_length (edge *e)
         }
 }
 
-/* Calculates the Hessian matrix [dK_i / du_j], given 
+/* Calculates the the negative of the Hessian matrix [dK_i / du_j], given 
  * that edge angles and radius parameters are set.
  */
 void calc_hessian(mesh *m)

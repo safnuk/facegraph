@@ -166,21 +166,20 @@ void calc_line_search(ricci_solver *r)
 
 /* Calculates the new value for the radius parameters,
  * by the formula
- *      s_next = s * exp(-(1/2)^j step)
+ *      s_next = s * exp((1/2)^j step)
  *
  * This is because the gradient descent variables are
  * u, with s = exp(u), hence
- *      u_next = u - lambda * step
+ *      u_next = u + lambda * step
  * translates into the above formula.
- * The minus sign comes from solving the equation
- *  H * step = K (should solve H * step = - K
- *  for Newton's method).
+ * The formula comes from solving the equation
+ *  -H * step = K for Newton's method.
  */
 void calc_next_s(ricci_solver *r)
 {
         int i;
         for (i=0; i < r->m->ranks[0]; i++) {
-                r->s_next[i] = r->s[i] * exp(-1 * r->step_scale * r->step[i]);
+                r->s_next[i] = r->s[i] * exp(r->step_scale * r->step[i]);
         }
 }
 
