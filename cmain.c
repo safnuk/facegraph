@@ -16,8 +16,8 @@ int main(int argc, char *argv[])
 {
         filedata data;
         mesh m;
-        if ( argc != 2 ) {
-                printf( "usage: %s filename\n", argv[0] );
+        if ( argc != 3 ) {
+                printf( "usage: %s in_filename out_filename\n", argv[0] );
                 return 0;
         }
         initialize_filedata(&data);
@@ -27,5 +27,6 @@ int main(int argc, char *argv[])
         calc_circlepack_metric(&m);
         // print_mesh(&m);
         run_ricci_flow(&m);
+        write(&m, argv[2]);
         deallocate_mesh(&m);
 }
