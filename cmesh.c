@@ -483,7 +483,7 @@ double calc_curvature(vertex *v)
                 j = get_vertex_position_in_triangle(v, t);
                 angle_sum += t->inner_angles[j];
         }
-        return 2*M_PI - (1 + v->boundary)*angle_sum;
+        return (2 - v->boundary) * (M_PI - angle_sum);
 }
 
 void calc_edge_lengths(mesh *m) 
@@ -520,9 +520,13 @@ void calc_hessian(mesh *m)
         double dtheta_dl[3][3];
         double dl_ds[3][3];
         double ds_du[3][3];
+        double entry, entry0, entry1;
         triangle *t;
-        int i, j, k, l, count;
-        vertex *v, *v1;
+        int i, j, k, l, k0, k1, count;
+        int nz;
+        vertex *v0, *v1;
+        edge *e;
+        double max_unsymm=0;
 
         for (i=0; i < m->ranks[2]; i++) {
                 t = &(m->triangles[i]);
@@ -533,7 +537,8 @@ void calc_hessian(mesh *m)
                                 t->hessian);
         }
 
-        int nz = calc_number_of_nonzero_hessian_entries(m);
+
+        nz = m->ranks[0] + 2 * m->ranks[1];
         double *val = (double *)malloc(nz * sizeof(double));
         int *row_ind = (int *)malloc(nz * sizeof(int));
         int *col_ind = (int *)malloc(nz * sizeof(int));
@@ -543,19 +548,46 @@ void calc_hessian(mesh *m)
         }
         count = 0;
         for (i=0; i < m->ranks[0]; i++) {
-                v = &(m->vertices[i]);
-                for (j=0; j < v->degree - v->boundary; j++) {
-                        t = (triangle *)(v->incident_triangles[j]);
-                        for (k=0; k<3; k++) {
-                                v1 = (vertex *)(t->vertices[k]);
-                                l = v1->index;
-                                val[count] = *(v->dtheta_du[j][k]);
-                                row_ind[count] = i;
-                                col_ind[count] = l;
-                                count++;
-                        }
+                v0 = &(m->vertices[i]);
+                entry = 0;
+                for (j=0; j < v0->degree - v0->boundary; j++) {
+                        t = (triangle *)(v0->incident_triangles[j]);
+                        k = get_vertex_position_in_triangle(v0, t);
+                        entry += *(v0->dtheta_du[j][k]);
+                }
+                // entry *= 1 + v0->boundary; // boundary vertices count double
+                val[count] = entry;
+                row_ind[count] = i;
+                col_ind[count] = i;
+                count++;
+        }
+        for (i=0; i < m->ranks[1]; i++) {
+                e = &(m->edges[i]);
+                v0 = (vertex *)(e->vertices[0]);
+                v1 = (vertex *)(e->vertices[1]);
+                entry0 = 0; entry1 = 0;
+                for (j=0; j<2 && e->incident_triangles[j]; j++) {
+                        t = (triangle *)(e->incident_triangles[j]);
+                        k0 = get_vertex_position_in_triangle(v0, t);
+                        k1 = get_vertex_position_in_triangle(v1, t);
+                        entry0 += t->hessian[k0][k1];
+                        entry1 += t->hessian[k1][k0];
+                }
+                // entry0 *= 1 + v0->boundary;
+                // entry1 *= 1 + v1->boundary;
+                val[count] = entry0;
+                row_ind[count] = v0->index;
+                col_ind[count] = v1->index;
+                count++;
+                val[count] = entry1;
+                row_ind[count] = v1->index;
+                col_ind[count] = v0->index;
+                count++;
+                if (fabs(entry0 - entry1) > max_unsymm) {
+                        max_unsymm = fabs(entry0 - entry1);
                 }
         }
+        printf("Hessian max assymetry = %e\n", max_unsymm);
         Coord_Mat_double A(m->ranks[0], m->ranks[0], nz, val, row_ind, col_ind);
         m->hessian = A;
 
