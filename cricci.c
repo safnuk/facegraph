@@ -32,8 +32,8 @@ void initialize_ricci_solver(ricci_solver *r, mesh *m, ricci_config *rc)
         // set default configuration settings
         rc->verbose = 3; // set to 2 for updates every iteration, 0 for no output
         rc->integration_precision = 30; // number of subdivisions for simpson's integration
-        rc->relative_error = 4.0e-12;
-        rc->absolute_error = 4.0e-12;
+        rc->relative_error = 1.0e-12;
+        rc->absolute_error = 1.0e-14;
         rc->wolfe_c1= 1.0e-4;
         rc->wolfe_c2 = 0.9;
         rc->strong_wolfe = 0;  // 0 for regular Wolfe conditions, 1 for strong
@@ -103,7 +103,8 @@ void calc_next_step(ricci_solver *r)
         double tolerance = r->rc->cg_tolerance;
         r->step = 0;
         DiagPreconditioner_double D(r->m->hessian);
-
+        r->K_supnorm = sup_norm(r->K);
+        tolerance = (tolerance < r->K_supnorm * 1e-2 ? tolerance : r->K_supnorm * 1e-2);
         result = CG(r->m->hessian, r->step, r->K, D, max_iterations, tolerance);
 
         if (r->rc->verbose > 2) {

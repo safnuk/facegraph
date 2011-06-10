@@ -33,7 +33,7 @@ face *add_face_node(face *node, int v1, int v2, int v3);
 _point *parse_new_point(_point *point_node, char *line, int point_count);
 face *parse_new_face(face *face_node, char *line, int face_count);
 int read(char *filename, filedata *data);
-void write(mesh *m, char *filename);
+void save_mesh(char *filename, void *data);
 void initialize_filedata(filedata *data);
 void deallocate_filedata(filedata *data);
 void deallocate_point(_point *head);

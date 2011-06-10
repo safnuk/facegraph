@@ -5,8 +5,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include "cmesh.h"
+
+#include "coord_double.h"
+#include "comprow_double.h"
+#include "compcol_double.h"
+#include "mvblasd.h"
+
 #include "cfile_io.h"
+#include "cmesh.h"
 
 
 
@@ -44,7 +50,7 @@ int read(char *filename, filedata* data)
         return 0;
 }
 
-int write(mesh *m, char *filename)
+void save_mesh(char *filename, void *data)
 {
         FILE *fp;
         int i, j;
@@ -53,6 +59,7 @@ int write(mesh *m, char *filename)
         fp = fopen(filename, "w");
         vertex *v;
         edge *e;
+        mesh *m = (mesh *) data;
         if (fp == NULL) {
                 printf("Can't open file!\n");
                 exit(1);
@@ -60,15 +67,15 @@ int write(mesh *m, char *filename)
         for (i=0; i < m->ranks[0]; i++) {
                 s = m->vertices[i].s;
                 r = log((1 + s) / (1 - s));
-                fprintf("Vertex %i %f %f %f %f\n", i, m->coordinates[i].x,
-                               m->coordinates[i].y, m->coordinates[i].z, r) 
+                fprintf(fp, "Vertex %i %f %f %f %f\n", i, m->coordinates[i].x,
+                               m->coordinates[i].y, m->coordinates[i].z, r);
         }
         for (i=0; i < m->ranks[2]; i++) {
                 for (j=0; j<3; j++) {
                         v = (vertex *)(m->triangles[i].vertices[j]);
                         k[j] = v->index;
                 }
-                fprintf("Face %i %i %i %i\n", i, k[0], k[1], k[2]);
+                fprintf(fp, "Face %i %i %i %i\n", i, k[0], k[1], k[2]);
         }
         for (i=0; i < m->ranks[1]; i++) {
                 e = &(m->edges[i]);
@@ -81,7 +88,7 @@ int write(mesh *m, char *filename)
                         k[0] = k[1];
                         k[1] = k[2];
                 }
-                fprintf("Edge %i %i %f %f\n", k[0], k[1], acos(e->cos_angle),
+                fprintf(fp, "Edge %i %i %f %f\n", k[0], k[1], acos(e->cos_angle),
                       acosh(e->cosh_length) );
         }
         fclose(fp);

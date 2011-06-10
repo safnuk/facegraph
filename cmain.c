@@ -3,11 +3,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <lbfgs.h>
-#include "cfile_io.h"
 #include "coord_double.h"
 #include "comprow_double.h"
 #include "compcol_double.h"
 #include "mvblasd.h"
+#include "cfile_io.h"
 #include "cmesh.h"
 #include "ccirclepack.h"
 #include "cricci.h"
@@ -27,6 +27,6 @@ int main(int argc, char *argv[])
         calc_circlepack_metric(&m);
         // print_mesh(&m);
         run_ricci_flow(&m);
-        write(&m, argv[2]);
+        save_mesh(argv[2], (void *) &m);
         deallocate_mesh(&m);
 }
