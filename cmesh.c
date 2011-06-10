@@ -526,7 +526,6 @@ void calc_hessian(mesh *m)
         int nz;
         vertex *v0, *v1;
         edge *e;
-        double max_unsymm=0;
 
         for (i=0; i < m->ranks[2]; i++) {
                 t = &(m->triangles[i]);
@@ -573,8 +572,6 @@ void calc_hessian(mesh *m)
                         entry0 += t->hessian[k0][k1];
                         entry1 += t->hessian[k1][k0];
                 }
-                // entry0 *= 1 + v0->boundary;
-                // entry1 *= 1 + v1->boundary;
                 val[count] = entry0;
                 row_ind[count] = v0->index;
                 col_ind[count] = v1->index;
@@ -583,11 +580,7 @@ void calc_hessian(mesh *m)
                 row_ind[count] = v1->index;
                 col_ind[count] = v0->index;
                 count++;
-                if (fabs(entry0 - entry1) > max_unsymm) {
-                        max_unsymm = fabs(entry0 - entry1);
-                }
         }
-        printf("Hessian max assymetry = %e\n", max_unsymm);
         Coord_Mat_double A(m->ranks[0], m->ranks[0], nz, val, row_ind, col_ind);
         m->hessian = A;
 

@@ -111,21 +111,6 @@ void calc_next_step(ricci_solver *r)
                 printf("CG flag = %i, iterations = %i, tolerance = %e\n", result,
                                 max_iterations, tolerance);
         }
-        /*
-        if (r->rc->cg_precon) {
-                pccg_solve(&calc_hessian_product, r->step, r->K, 
-                        r->rc->cg_tolerance,
-                        r->m->ranks[0], r->rc->cg_max_iterations, 
-                        r->rc->verbose - 2,
-                        (void *)r);
-        } else {
-                cg_solve(&calc_hessian_product, r->step, r->K, 
-                        r->rc->cg_tolerance,
-                        r->m->ranks[0], r->rc->cg_max_iterations, 
-                        r->rc->verbose - 2,
-                        (void *)r);
-        }
-        */
 }
 
 /* Perform a line search in the direction found by calc_next_step.
