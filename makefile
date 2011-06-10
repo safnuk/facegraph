@@ -1,9 +1,10 @@
 CC = g++
 DEBUG = -ggdb
-CFLAGS = -ansi -pedantic -O3 '-DCOMPLEX=std::complex<double>' \
+CFLAGS = -ansi -pedantic  '-DCOMPLEX=std::complex<double>' \
 	-IIML++ -ISparseLib++/include -ISparseLib++/mv/include
-LFLAGS = -ansi -pedantic -O3 '-DCOMPLEX=std::complex<double>' \
-	SparseLib++/lib/libsparse.a SparseLib++/lib/libspblas.a SparseLib++/lib/libmv.a
+LFLAGS = -ansi -pedantic  '-DCOMPLEX=std::complex<double>' \
+	SparseLib++/lib/libsparse.a SparseLib++/lib/libspblas.a SparseLib++/lib/libmv.a \
+	-L/usr/local/lib -llbfgs
 
 HEADERS = \
 	   cricci.h		\
@@ -20,7 +21,7 @@ OBJS =  \
 	   cfile_io.o		\
 	   csimpson.o		\
 	   cmesh.o		\
-	   cconj_grad.o		
+	   cconj_grad.o
 
 main : $(OBJS)
 	$(CC) $(DEBUG) $(LFLAGS) $(OBJS) -o main -lm

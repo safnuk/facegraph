@@ -394,7 +394,7 @@ double update_f_and_s(mesh *m,  double *s, int n)
  * passed values. Also recalculates the edge lengths
  * using the new radii.
  */
-void update_s_and_edge_lengths(mesh *m, double *s)
+void update_s_and_edge_lengths(mesh *m, MV_Vector_double &s)
 {
         int i;
         for (i=0; i < m->ranks[0]; i++) {
@@ -427,7 +427,7 @@ double curvature_integrand(double s, void *instance)
  *
  * TODO: Update inner angles when edge lengths are calculated.
  */
-void calc_curvatures(mesh *m, double *K)
+void calc_curvatures(mesh *m, MV_Vector_double &K)
 {
         int i;
         vertex *v;
@@ -562,6 +562,18 @@ void calc_hessian(mesh *m)
         free(row_ind);
         free(col_ind);
 
+}
+
+int calc_number_of_nonzero_hessian_entries(mesh *m)
+{
+        int i;
+        vertex v;
+        int count = 0;
+        for (i=0; i < m->ranks[0]; i++) {
+                v = (m->vertices[i]);
+                count += 3 * (v.degree - v.boundary);
+        }
+        return count;
 }
 
 /* Calculate the matrix of derivatives [d theta/dl],

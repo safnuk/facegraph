@@ -9,6 +9,10 @@
 #include "coord_double.h"
 #include "comprow_double.h"
 #include "mvblasd.h"
+#include "diagpre_double.h"              // Preconditioners
+#include "icpre_double.h"
+#include "ilupre_double.h"
+#include "cg.h"
 #include "cmesh.h"
 #include "cconj_grad.h"
 #include "cricci.h"
@@ -34,32 +38,23 @@ void initialize_ricci_solver(ricci_solver *r, mesh *m, ricci_config *rc)
         rc->strong_wolfe = 0;  // 0 for regular Wolfe conditions, 1 for strong
         rc->max_iterations = 30;
         rc->max_line_steps = 25;
-        rc->cg_max_iterations = 0; // 0 for no max number of iterations
+        rc->cg_max_iterations = 200; // 0 for no max number of iterations
         rc->cg_precon = 0;  // 1 for Jacobi preconditioning, 0 for no precon.
-        rc->cg_tolerance = 1.0e-8;
+        rc->cg_tolerance = 1.0e-6;
         r->m = m;
         r->rc = rc;
         r->iteration = 0;
         r->status = RUNNING;
-        r->s = (double *)malloc(m->ranks[0] * sizeof(double));
-        r->s_next = (double *)malloc(m->ranks[0] * sizeof(double));
-        r->K = (double *)malloc(m->ranks[0] * sizeof(double));
-        r->K_next = (double *)malloc(m->ranks[0] * sizeof(double));
-        r->step = (double *)malloc(m->ranks[0] * sizeof(double));
-        if (!r->s || !r->K || !r->K_next || !r->step || !r->s_next) {
-                printf("Memory allocation error in initialize_ricci_solver.\n");
-                exit(1);
-        }
+        r->s.newsize(m->ranks[0]);
+        r->s_next.newsize(m->ranks[0]);
+        r->K.newsize(m->ranks[0]);
+        r->K_next.newsize(m->ranks[0]);
+        r->step.newsize(m->ranks[0]);
         calc_initial_variables(r);
 }
 
 void deallocate_ricci_solver(ricci_solver *r)
 {
-        free(r->s);
-        free(r->s_next);
-        free(r->K);
-        free(r->K_next);
-        free(r->step);
 }
 
 void calc_flat_metric(ricci_solver *r)
@@ -81,8 +76,8 @@ ricci_state convergence_test(ricci_solver *r)
         if (r->iteration > r->rc->max_iterations) {
                 r->status = TOO_MANY_ITERATIONS; 
         }
-        r->K_norm = vector_norm(r->K, r->m->ranks[0]);
-        r->step_norm = vector_norm(r->step, r->m->ranks[0]);
+        r->K_norm = norm(r->K);
+        r->step_norm = norm(r->step);
         if (r->K_norm < r->rc->relative_error * r->init_K_norm + r->rc->absolute_error) {
                 r->status = CONVERGENT;
         }
@@ -102,7 +97,19 @@ void update_hessian(ricci_solver *r)
  */
 void calc_next_step(ricci_solver *r)
 {
-        clear_vector(r->step, r->m->ranks[0]);
+        int result;
+        int max_iterations = r->rc->cg_max_iterations;
+        double tolerance = r->rc->cg_tolerance;
+        r->step = 0;
+        DiagPreconditioner_double D(r->m->hessian);
+
+        result = CG(r->m->hessian, r->step, r->K, D, max_iterations, tolerance);
+
+        if (r->rc->verbose > 2) {
+                printf("CG flag = %i, iterations = %i, tolerance = %e\n", result,
+                                max_iterations, tolerance);
+        }
+        /*
         if (r->rc->cg_precon) {
                 pccg_solve(&calc_hessian_product, r->step, r->K, 
                         r->rc->cg_tolerance,
@@ -116,6 +123,7 @@ void calc_next_step(ricci_solver *r)
                         r->rc->verbose - 2,
                         (void *)r);
         }
+        */
 }
 
 /* Perform a line search in the direction found by calc_next_step.
@@ -136,11 +144,11 @@ void calc_line_search(ricci_solver *r)
         int i=0;
         int wolfe_conditions_verified=0;
         r->step_scale = 2;
-        r->K_supnorm = sup_norm(r->K, r->m->ranks[0]);
+        r->K_supnorm = sup_norm(r->K);
         while (!wolfe_conditions_verified && (i < r->rc->max_line_steps)) {
                 r->step_scale *= 0.5; 
                 calc_next_s(r);
-                if (vector_in_bounds(r->s_next, 1.0e-14, 1-1.0e-14, r->m->ranks[0])) {
+                if (vector_in_bounds(r->s_next, 1.0e-14, 1-1.0e-14)) {
                         update_s_and_edge_lengths(r->m, r->s_next);
                         calc_curvatures(r->m, r->K_next);
                         wolfe_conditions_verified = test_wolfe_conditions(r);
@@ -152,8 +160,8 @@ void calc_line_search(ricci_solver *r)
                 return;
         }
         // Make the next-step quantities the current values
-        swap_vectors(&(r->K), &(r->K_next));
-        swap_vectors(&(r->s), &(r->s_next));
+        r->K = r->K_next;
+        r->s = r->s_next;
 }
 
 /* Calculates the new value for the radius parameters,
@@ -184,8 +192,7 @@ void calc_next_s(ricci_solver *r)
  */
 int test_wolfe_conditions(ricci_solver *r)
 {
-        int n = r->m->ranks[0];
-        double K_next_supnorm = sup_norm(r->K_next, n);
+        double K_next_supnorm = sup_norm(r->K_next);
         if (K_next_supnorm >= r->K_supnorm) {
                 return 0;
         }
@@ -205,40 +212,6 @@ int test_wolfe_conditions(ricci_solver *r)
         return 1;
 }
 
-/* Calculates the product H*x and returns the result in y,
- * where H is the hessian [dK_i / du_j] (symmetric, positive definite).
- *
- * n is the size (number of vertices) and instance is a pointer
- * to a ricci_solver struct.
- *
- * Assumes that calc_hessian(m) has been called for the mesh
- * being used.
- */
-int calc_hessian_product(double *x, double *y, int n,
-    void *instance)
-{
-        int i, j, k, l;
-        mesh *m;
-        ricci_solver *rs;
-        vertex *v, *v1;
-        triangle *t;
-
-
-        rs = (ricci_solver *)instance;
-        m = rs->m;
-        for (i=0; i < m->ranks[0]; i++) {
-                y[i] = 0;
-                v = &(m->vertices[i]);
-                for (j=0; j < v->degree - v->boundary; j++) {
-                        t = (triangle *)(v->incident_triangles[j]);
-                        for (k=0; k<3; k++) {
-                                v1 = (vertex *)(t->vertices[k]);
-                                l = v1->index;
-                                y[i] -= x[l] * *(v->dtheta_du[j][k]);
-                        }
-                }
-        }
-}
 
 void calc_initial_variables(ricci_solver *r)
 {
@@ -249,49 +222,12 @@ void calc_initial_variables(ricci_solver *r)
         }
         calc_edge_lengths(r->m);
         calc_curvatures(r->m, r->K);
-        r->init_K_norm = vector_norm(r->K, r->m->ranks[0]);
+        r->init_K_norm = norm(r->K);
         r->K_norm = r->init_K_norm;
         r->step_norm = 0;
         r->step_scale = 1;
 }
 
-int check_hessian_symmetry(ricci_solver *r)
-{
-        mesh *m = r->m;
-        double *x, *y;
-        int i,j;
-        double h_ij, h_ji;
-        x = (double *) malloc(m->ranks[0] * sizeof(double));
-        y = (double *) malloc(m->ranks[0] * m->ranks[0] * sizeof(double));
-        if (!x || !y) {
-                printf("Memory allocation error in check_hessian_symmetry.\n");
-                exit(1);
-        }
-        for (i=0; i < m->ranks[0]; i++) {
-                x[i] = 0;
-        }
-        j=0;
-        for (i=0; i < m->ranks[0]; i++) {
-                x[i] = 1;
-                calc_hessian_product(x, &y[j * m->ranks[0]], r->m->ranks[0], (void *)r);
-                j++;
-                x[i]= 0;
-        }
-        for (i=0; i < m->ranks[0]; i++) {
-                for (j=i+1; j < m->ranks[0]; j++) {
-                        h_ij = y[i * m->ranks[0] + j];
-                        h_ji = y[j * m->ranks[0] + i];
-                        if (fabs(h_ij -  h_ji) > .00000001) {
-                                free(x);
-                                free(y);
-                                return 0;
-                        }
-                }
-        }
-        free(x);
-        free(y);
-        return 1;
-}
 
 void print_ricci_status(ricci_solver *r)
 {
@@ -299,12 +235,12 @@ void print_ricci_status(ricci_solver *r)
                 printf("Ricci flow terminated after %i iterations with status code %i, ", r->iteration-1, 
                                 r->status);
                 printf("||K|| = %e, K_max = %e, Step size = %f\n", r->K_norm, 
-                                sup_norm(r->K, r->m->ranks[0]), r->step_norm);
+                                sup_norm(r->K), r->step_norm);
         }
         if ((r->status == RUNNING) && (r->rc->verbose >= 2)) {
                 printf("Iteration %i: ||K|| = %e, K_max = %e, Step size = %f, Step scale = %f\n",
                      r->iteration-1, r->K_norm, 
-                     sup_norm(r->K, r->m->ranks[0]), r->step_norm, r->step_scale);
+                     sup_norm(r->K), r->step_norm, r->step_scale);
         }
 }
 /* Calculates the sup-norm of the n-dimensional vector v. 
@@ -324,10 +260,10 @@ double sup_norm(const MV_Vector_double &x)
  *              min < v[i] < max.
  *  Returns false otherwise.
  */
-int vector_in_bounds(double *v, double min, double max, int n)
+int vector_in_bounds(const MV_Vector_double &v, double min, double max)
 {
         int i;
-        for (i=0; i<n; i++) {
+        for (i=0; i<v.size(); i++) {
                 if (v[i] <= min || v[i] >= max) {
                         return 0;
                 }
@@ -335,34 +271,4 @@ int vector_in_bounds(double *v, double min, double max, int n)
         return 1;
 }
 
-/* Sets the entries of the vector v to 0.
- */
-void clear_vector(double *v, int n)
-{
-        int i;
-        for (i=0; i<n; i++) {
-                v[i] = 0;
-        }
-}
 
-/* Performs an in-place swap of vectors v and w.
- */
-void swap_vectors(double **v, double **w)
-{
-        double *u;
-        u = *v;
-        *v = *w;
-        *w = u;
-}
-
-/* Calculates the dot product of vectors v and w.
- */
-double dot_product(double *v, double *w, int n)
-{
-        int i;
-        double sum=0;
-        for (i=0; i<n; i++) {
-                sum += v[i] * w[i];
-        }
-        return sum;
-}

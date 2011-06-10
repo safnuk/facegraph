@@ -44,11 +44,11 @@ typedef struct {
   ricci_state status;
   double f;
   double f_next;
-  double *s;
-  double *s_next;
-  double *K;
-  double *K_next;
-  double *step;
+  MV_Vector_double s;
+  MV_Vector_double s_next;
+  MV_Vector_double K;
+  MV_Vector_double K_next;
+  MV_Vector_double step;
 } ricci_solver;
 
 
@@ -57,9 +57,6 @@ void initialize_ricci_solver(ricci_solver *r, mesh *m, ricci_config *rc);
 void deallocate_ricci_solver(ricci_solver *r);
 void calc_initial_variables(ricci_solver *r);
 void calc_flat_metric(ricci_solver *r);
-int calc_hessian_product(double *x, double *y, int n,
-    void *instance);
-int check_hessian_symmetry(ricci_solver *r);
 ricci_state convergence_test(ricci_solver *r);
 void update_hessian(ricci_solver *r);
 void calc_next_step(ricci_solver *r);
@@ -70,7 +67,4 @@ int test_wolfe_conditions(ricci_solver *r);
 void print_ricci_status(ricci_solver *r);
 
 double sup_norm(const MV_Vector_double &x);
-int vector_in_bounds(double *v, double min, double max, int n);
-void clear_vector(double *v, int n);
-void swap_vectors(double **v, double **w);
-double dot_product(double *v, double *w, int n);
+int vector_in_bounds(const MV_Vector_double &v, double min, double max);

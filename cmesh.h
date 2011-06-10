@@ -143,8 +143,8 @@ point* get_coordinate(mesh *m, vertex *v);
 
 double calc_distance(point *p1, point *p2);
 double update_f_and_s(mesh *m, double *s, int n);
-void update_s_and_edge_lengths(mesh *m, double *s);
-void calc_curvatures(mesh *m, double *K);
+void update_s_and_edge_lengths(mesh *m, MV_Vector_double &s);
+void calc_curvatures(mesh *m, MV_Vector_double &K);
 void calc_inner_angles(mesh *m);
 double calc_curvature(vertex *v);
 double curvature_integrand(double s, void *instance);
@@ -159,6 +159,7 @@ void calc_dl_ds(triangle *t, double A[3][3]);
 void calc_ds_du(triangle *t, double A[3][3]);
 void calc_3_matrix_product(double A[3][3], double B[3][3],
     double C[3][3], double D[3][3]);
+int calc_number_of_nonzero_hessian_entries(mesh *m);
 
 void print_mesh(mesh *m);
 void print_coordinate(point *p);
