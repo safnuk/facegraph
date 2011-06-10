@@ -8,6 +8,7 @@
 #include "cfile_io.h"
 #include "coord_double.h"
 #include "comprow_double.h"
+#include "compcol_double.h"
 #include "mvblasd.h"
 #include "diagpre_double.h"              // Preconditioners
 #include "icpre_double.h"
@@ -31,16 +32,16 @@ void initialize_ricci_solver(ricci_solver *r, mesh *m, ricci_config *rc)
         // set default configuration settings
         rc->verbose = 3; // set to 2 for updates every iteration, 0 for no output
         rc->integration_precision = 30; // number of subdivisions for simpson's integration
-        rc->relative_error = 1.0e-11;
-        rc->absolute_error = 1.0e-11;
+        rc->relative_error = 4.0e-12;
+        rc->absolute_error = 4.0e-12;
         rc->wolfe_c1= 1.0e-4;
         rc->wolfe_c2 = 0.9;
         rc->strong_wolfe = 0;  // 0 for regular Wolfe conditions, 1 for strong
         rc->max_iterations = 30;
         rc->max_line_steps = 25;
-        rc->cg_max_iterations = 200; // 0 for no max number of iterations
+        rc->cg_max_iterations = 4000; // 0 for no max number of iterations
         rc->cg_precon = 0;  // 1 for Jacobi preconditioning, 0 for no precon.
-        rc->cg_tolerance = 1.0e-6;
+        rc->cg_tolerance = 1.0e-8;
         r->m = m;
         r->rc = rc;
         r->iteration = 0;
@@ -233,11 +234,11 @@ void print_ricci_status(ricci_solver *r)
         if ((r->status != RUNNING) && (r->rc->verbose > 0)) {
                 printf("Ricci flow terminated after %i iterations with status code %i, ", r->iteration-1, 
                                 r->status);
-                printf("||K|| = %e, K_max = %e, Step size = %f\n", r->K_norm, 
+                printf("||K|| = %e, K_max = %e, Step size = %e\n", r->K_norm, 
                                 sup_norm(r->K), r->step_norm);
         }
         if ((r->status == RUNNING) && (r->rc->verbose >= 2)) {
-                printf("Iteration %i: ||K|| = %e, K_max = %e, Step size = %f, Step scale = %f\n",
+                printf("Iteration %i: ||K|| = %e, K_max = %e, Step size = %e, Step scale = %f\n",
                      r->iteration-1, r->K_norm, 
                      sup_norm(r->K), r->step_norm, r->step_scale);
         }

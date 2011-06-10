@@ -6,6 +6,7 @@
 
 #include "coord_double.h"
 #include "comprow_double.h"
+#include "compcol_double.h"
 #include "mvblasd.h"
 
 #include "cfile_io.h"
