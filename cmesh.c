@@ -50,6 +50,25 @@ int initialize_mesh(mesh *m, filedata *fd)
         construct_vertex_hessian_pointers(m);
 }
 
+void double_mesh(mesh *m, mesh *m_double)
+{
+        m_double->vertices = (vertex*) malloc(2 * m->ranks[0] * sizeof(vertex));
+        m_double->edges = (edge*) malloc(2 * m->ranks[1] * sizeof(edge));
+        m_double->triangles = (triangle*) malloc(2 * m->ranks[2] * sizeof(triangle));
+        m->coordinates = (point*)malloc(m->ranks[0] * sizeof(point));
+        if (!valid_pointers(m_double)) {
+                printf("Memory allocation failure!\n Goodbye.\n");
+                deallocate_mesh(m);
+                exit;
+        }
+        double_vertices(m, m_double);
+        double_edges(m, m_double);
+        double_triangles(m, m_double);
+        sort_cyclic_order_at_vertices(m_double);
+        add_link_edges(m_double);
+        construct_vertex_hessian_pointers(m_double);
+
+}
 /* Free memory allocated in a previously initialized mesh. */
 void deallocate_mesh(mesh *m) {
         free(m->vertices);
@@ -483,7 +502,7 @@ double calc_curvature(vertex *v)
                 j = get_vertex_position_in_triangle(v, t);
                 angle_sum += t->inner_angles[j];
         }
-        return (2 - v->boundary) * (M_PI - angle_sum);
+        return (2 - v->boundary) * M_PI - angle_sum;
 }
 
 void calc_edge_lengths(mesh *m) 
