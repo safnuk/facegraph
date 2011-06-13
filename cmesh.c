@@ -91,7 +91,7 @@ void double_mesh(mesh *m, mesh *m_double)
         }
         for (i=0; i < m->ranks[2]; i++) {
                 for (j=0; j < 3; j++) {
-                        t[j] = ((vertex*)m->triangles[point_map[i]].vertices[j])->index;
+                        t[j] = point_map[((vertex*)m->triangles[i].vertices[j])->index];
                 }
                 face_node = add_face_node(face_node, t[0], t[2], t[1]);
         }
@@ -136,6 +136,8 @@ void copy_points(_point *head, mesh *m)
                 m->coordinates[i].x = node->x;
                 m->coordinates[i].y = node->y;
                 m->coordinates[i].z = node->z;
+                m->vertices[i].degree = 0;
+                m->vertices[i].boundary = 0;
                 i++;
         }
 }
@@ -202,22 +204,6 @@ int construct_edges(mesh *m)
         return edge_count;
 }
 
-void double_vertices(mesh *m, mesh *m_double)
-{
-        int i, j;
-
-        for (i=0; i < m->ranks[0]; i++) {
-                
-        }
-}
-
-void double_edges(mesh *m, mesh *m_double)
-{
-}
-
-void double_triangles(mesh *m, mesh *m_double)
-{
-}
 
 /* Sorts the incidence data at each vertex to respect the inherited
  * cyclic ordering. In other words, if two edges e_j and e_k 
