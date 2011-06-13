@@ -122,6 +122,8 @@ typedef struct {
 } mesh;
 
 int initialize_mesh(mesh *m, filedata *fd);
+void double_mesh(mesh *m, mesh *m_double);
+void split_doubled_mesh(mesh *m, mesh *m_double);
 void deallocate_mesh(mesh *m);
 void add_indices(mesh *m);
 void copy_points(_point *head, mesh *m);
@@ -130,6 +132,9 @@ int construct_edges(mesh *m);
 void *get_incident_edge(vertex *v1, vertex *v2);
 void add_incident_vertices_and_edge(vertex *v1, vertex *v2, edge *e);
 int valid_pointers(mesh *m);
+void double_vertices(mesh *m, mesh *m_double);
+void double_edges(mesh *m, mesh *m_double);
+void double_triangles(mesh *m, mesh *m_double);
 void sort_cyclic_order_at_vertices(mesh *m);
 int find_clockwise_edge(vertex *v, void *ie[], void *iv[]);
 int find_counterclockwise_edge(vertex *v, void *ie[], void *iv[]);

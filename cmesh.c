@@ -52,22 +52,70 @@ int initialize_mesh(mesh *m, filedata *fd)
 
 void double_mesh(mesh *m, mesh *m_double)
 {
-        m_double->vertices = (vertex*) malloc(2 * m->ranks[0] * sizeof(vertex));
-        m_double->edges = (edge*) malloc(2 * m->ranks[1] * sizeof(edge));
-        m_double->triangles = (triangle*) malloc(2 * m->ranks[2] * sizeof(triangle));
-        m->coordinates = (point*)malloc(m->ranks[0] * sizeof(point));
-        if (!valid_pointers(m_double)) {
+        int i, j;
+        int offset = 0;
+        int* point_map = (int*) malloc(2 * m->ranks[0] * sizeof(int));
+        filedata data;
+        _point* point_node;
+        face* face_node;
+        point* p;
+        int t[3];
+
+        initialize_filedata(&data);
+        point_node = data.point_head;
+        face_node = data.face_head;
+        if (!point_map) {
                 printf("Memory allocation failure!\n Goodbye.\n");
-                deallocate_mesh(m);
                 exit;
         }
-        double_vertices(m, m_double);
-        double_edges(m, m_double);
-        double_triangles(m, m_double);
-        sort_cyclic_order_at_vertices(m_double);
-        add_link_edges(m_double);
-        construct_vertex_hessian_pointers(m_double);
+        for (i=0; i < m->ranks[0]; i++) {
+                point_node = add_point_node(point_node, m->coordinates[i].x,
+                                m->coordinates[i].y, m->coordinates[i].z);
+                if (m->vertices[i].boundary) {
+                        point_map[i] = i;
+                } else {
+                        point_map[i] = m->ranks[0] + offset;
+                        point_map[m->ranks[0] + offset] = i;
+                        offset++;
+                }
+        }
+        for (i=m->ranks[0]; i < m->ranks[0] + offset; i++) {
+                p = &(m->coordinates[point_map[i]]);
+                point_node = add_point_node(point_node, p->x, p->y, p->z);
+        }
+        for (i=0; i < m->ranks[2]; i++) {
+                for (j=0; j < 3; j++) {
+                        t[j] = ((vertex*)m->triangles[i].vertices[j])->index;
+                }
+                face_node = add_face_node(face_node, t[0], t[1], t[2]);
+        }
+        for (i=0; i < m->ranks[2]; i++) {
+                for (j=0; j < 3; j++) {
+                        t[j] = ((vertex*)m->triangles[point_map[i]].vertices[j])->index;
+                }
+                face_node = add_face_node(face_node, t[0], t[2], t[1]);
+        }
+        data.number_of_points = m->ranks[0] + offset;
+        data.number_of_triangles = 2 * m->ranks[2];
 
+        initialize_mesh(m_double, &data);
+
+        deallocate_filedata(&data);
+        free(point_map);
+}
+
+void split_doubled_mesh(mesh *m, mesh *m_double)
+{
+        int i;
+
+        for (i=0; i < m->ranks[0]; i++) {
+                m->vertices[i].s = m_double->vertices[i].s;
+        }
+        for (i=0; i < m->ranks[1]; i++) {
+                m->edges[i].cos_angle = m_double->edges[i].cos_angle;
+                m->edges[i].cosh_length = m_double->edges[i].cosh_length;
+                m->edges[i].sinh_length = m_double->edges[i].sinh_length;
+        }
 }
 /* Free memory allocated in a previously initialized mesh. */
 void deallocate_mesh(mesh *m) {
@@ -152,6 +200,23 @@ int construct_edges(mesh *m)
                 }
         }
         return edge_count;
+}
+
+void double_vertices(mesh *m, mesh *m_double)
+{
+        int i, j;
+
+        for (i=0; i < m->ranks[0]; i++) {
+                
+        }
+}
+
+void double_edges(mesh *m, mesh *m_double)
+{
+}
+
+void double_triangles(mesh *m, mesh *m_double)
+{
 }
 
 /* Sorts the incidence data at each vertex to respect the inherited
