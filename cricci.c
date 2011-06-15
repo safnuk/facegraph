@@ -31,10 +31,10 @@ void run_ricci_flow(mesh *m)
 void initialize_ricci_solver(ricci_solver *r, mesh *m, ricci_config *rc)
 {
         // set default configuration settings
-        rc->verbose = 3; // set to 2 for updates every iteration, 0 for no output
+        rc->verbose = 1; // set to 2 for updates every iteration, 0 for no output
         rc->integration_precision = 30; // number of subdivisions for simpson's integration
-        rc->relative_error = 1.0e-12;
-        rc->absolute_error = 1.0e-14;
+        rc->relative_error = 1.0e-11;
+        rc->absolute_error = 1.0e-10;
         rc->wolfe_c1= 1.0e-4;
         rc->wolfe_c2 = 0.9;
         rc->strong_wolfe = 0;  // 0 for regular Wolfe conditions, 1 for strong

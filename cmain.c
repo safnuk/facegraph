@@ -17,7 +17,6 @@ int main(int argc, char *argv[])
 {
         filedata data;
         mesh m;
-        mesh m_double;
         if ( argc < 2 ) {
                 printf( "usage: %s in_filename [out_filename]\n", argv[0] );
                 return 0;
@@ -26,13 +25,10 @@ int main(int argc, char *argv[])
         read(argv[1], &data);
         initialize_mesh(&m, &data);
         deallocate_filedata(&data);
-        double_mesh(&m, &m_double);
-        calc_circlepack_metric(&m_double);
-        run_ricci_flow(&m_double);
-        split_doubled_mesh(&m, &m_double);
+        calc_circlepack_metric(&m);
+        run_ricci_flow(&m);
         if (argc == 3) {
                 save_mesh(argv[2], (void *) &m);
         }
         deallocate_mesh(&m);
-        deallocate_mesh(&m_double);
 }

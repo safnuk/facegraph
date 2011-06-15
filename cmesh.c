@@ -50,15 +50,6 @@ int initialize_mesh(mesh *m, filedata *fd)
         add_link_edges(m);
         m->f = 0;
         calc_boundaries(m);
-        std::cout << "Boundaries: " << m->boundary_count << std::endl;
-        for (int i=0; i<m->boundary_count; i++) {
-                std::cout << "[" << i << "]:  " << (int) m->boundary_cycles[i].size() << std::endl;
-        }
-        int count=0;
-        for (int j=0; j<m->ranks[1]; j++) {
-                count += m->boundary_edges[j];
-        }
-        std::cout << count << " boundary edges, " << m->ranks[1] << " total edges.\n";
         construct_vertex_hessian_pointers(m);
 }
 
