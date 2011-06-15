@@ -2,6 +2,7 @@
 
 
 #define max_degree  15
+#define max_boundaries 4
 
 /* Struct which encodes incidence data at a vertex. The list of
  * incident vertices should be in alignment with the list of incident
@@ -114,10 +115,13 @@ typedef struct {
 typedef struct {
         double f;
         int ranks[3];  // ranks of i-th chain groups
+        int boundary_count;
         vertex *vertices;
         edge *edges;
         triangle *triangles;
         point *coordinates;
+        int* boundary_edges;
+        std::list<edge*> boundary_cycles[max_boundaries];
         CompRow_Mat_double hessian;
 } mesh;
 
@@ -129,6 +133,9 @@ void add_indices(mesh *m);
 void copy_points(_point *head, mesh *m);
 void construct_triangles(face *head, mesh *m);
 int construct_edges(mesh *m);
+void calc_boundaries(mesh *m);
+int get_next_component_start(int* track_boundary_edges, int n);
+edge* get_next_boundary_edge(edge* e);
 void *get_incident_edge(vertex *v1, vertex *v2);
 void add_incident_vertices_and_edge(vertex *v1, vertex *v2, edge *e);
 int valid_pointers(mesh *m);

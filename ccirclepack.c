@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <lbfgs.h>
 #include <math.h>
+#include <list>
 #include "cfile_io.h"
 #include "coord_double.h"
 #include "comprow_double.h"

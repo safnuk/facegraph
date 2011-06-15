@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <list>
 
 #include "coord_double.h"
 #include "comprow_double.h"

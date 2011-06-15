@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <list>
+#include <iostream>
 
 #include "coord_double.h"
 #include "comprow_double.h"
@@ -47,6 +49,16 @@ int initialize_mesh(mesh *m, filedata *fd)
         sort_cyclic_order_at_vertices(m);
         add_link_edges(m);
         m->f = 0;
+        calc_boundaries(m);
+        std::cout << "Boundaries: " << m->boundary_count << std::endl;
+        for (int i=0; i<m->boundary_count; i++) {
+                std::cout << "[" << i << "]:  " << (int) m->boundary_cycles[i].size() << std::endl;
+        }
+        int count=0;
+        for (int j=0; j<m->ranks[1]; j++) {
+                count += m->boundary_edges[j];
+        }
+        std::cout << count << " boundary edges, " << m->ranks[1] << " total edges.\n";
         construct_vertex_hessian_pointers(m);
 }
 
@@ -123,6 +135,7 @@ void deallocate_mesh(mesh *m) {
         free(m->edges);
         free(m->triangles);
         free(m->coordinates);
+        free(m->boundary_edges);
 }
 /* Copy array of (x,y,z) coordinate data into mesh's
  * coordinates array.
@@ -205,6 +218,71 @@ int construct_edges(mesh *m)
 }
 
 
+/* Finds all boundary edges, and creates the cycles of
+ * edges for each boundary component.
+ */
+void calc_boundaries(mesh *m)
+{
+        int i;
+        std::list<edge *>* cycle;
+        edge* e;
+        edge* e_start;
+        int* track_boundary_edges = (int*) malloc(m->ranks[1] * sizeof(int));
+        m->boundary_edges = (int*) malloc(m->ranks[1] * sizeof(int));
+        if (!track_boundary_edges || !m->boundary_edges) {
+                printf("Memory allocation error in calc_boundaries.\n");
+                exit(1);
+        }
+        m->boundary_count=0;
+        for (i=0; i<m->ranks[1]; i++) {
+                if (m->edges[i].incident_triangles[1] == NULL) {
+                        m->boundary_edges[i] = 1;
+                        track_boundary_edges[i] = 1;
+                } else {
+                        m->boundary_edges[i] = 0;
+                        track_boundary_edges[i] = 0;
+                }
+        }
+        while((i=get_next_component_start(track_boundary_edges, m->ranks[1])) >= 0) {
+                track_boundary_edges[i] = 0;
+                cycle = &(m->boundary_cycles[m->boundary_count]);
+                (m->boundary_count)++;
+                e_start = &(m->edges[i]);
+                (*cycle).push_front(e_start);
+                e = e_start;
+                while ((e=get_next_boundary_edge(e)) != e_start) {
+                        (*cycle).push_back(e);
+                        track_boundary_edges[e->index] = 0;
+                }
+        }
+        free(track_boundary_edges);
+}
+
+/* Returns the index of the first non-zero entry in
+ * track_boundary_edges. This corresponds with the first
+ * boundary edge not yet put in a boundary cycle.
+ * Returns -1 if all entries are 0.
+ */
+int get_next_component_start(int* track_boundary_edges, int n)
+{
+        int i;
+        for (i=0; i<n; i++) {
+                if (track_boundary_edges[i] != 0) {
+                        return i;
+                }
+        }
+        return -1;
+}
+
+/* Assuming that edge e is a boundary edge, 
+ * function returns the next edge if following along
+ * the induced orientation along the boundary.
+ */
+edge* get_next_boundary_edge(edge* e)
+{
+        vertex* v = (vertex*)e->vertices[1];
+        return (edge*)v->incident_edges[0];
+}
 /* Sorts the incidence data at each vertex to respect the inherited
  * cyclic ordering. In other words, if two edges e_j and e_k 
  * (or vertices or triangles) are listed in position i and i+1, then  

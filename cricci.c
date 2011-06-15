@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <list>
 #include "csimpson.h"
 #include "cfile_io.h"
 #include "coord_double.h"
