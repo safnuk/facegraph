@@ -9,6 +9,7 @@
 #include "compcol_double.h"
 #include "mvblasd.h"
 #include "cfile_io.h"
+#include "geodesic.h"
 #include "cmesh.h"
 #include "ccirclepack.h"
 #include "cricci.h"

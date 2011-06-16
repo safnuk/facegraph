@@ -10,9 +10,9 @@ HEADERS = \
 	   cricci.h		\
 	   ccirclepack.h	\
 	   cfile_io.h		\
+		 geodesic.h
 	   csimpson.h		\
-	   cmesh.h		\
-	   cconj_grad.h		
+	   cmesh.h
 
 OBJS =  \
 	   cmain.o		\
@@ -20,8 +20,7 @@ OBJS =  \
 	   ccirclepack.o	\
 	   cfile_io.o		\
 	   csimpson.o		\
-	   cmesh.o		\
-	   cconj_grad.o
+	   cmesh.o
 
 main : $(OBJS)
 	$(CC) $(DEBUG) $(LFLAGS) $(OBJS) -o main -lm
@@ -43,6 +42,3 @@ csimpson.o : csimpson.c $(HEADERS)
 
 cmesh.o : cmesh.c $(HEADERS)
 	$(CC) $(DEBUG) $(CFLAGS) -c cmesh.c
-
-cconj_grad.o : cconj_grad.c $(HEADERS)
-	$(CC) $(DEBUG) $(CFLAGS) -c cconj_grad.c

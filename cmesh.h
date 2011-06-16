@@ -30,9 +30,12 @@ typedef struct {
         void *incident_edges[max_degree];
         void *link_edges[max_degree];
         double *dtheta_du[max_degree][3];
+        double *inner_angles[max_degree];
         double s;
         double s0;
         int index;
+        list<geodesic> geodesics;
+        geodesic shortest_path;
 } vertex;
 
 /* Struct for encoding edge connectivity. Vertices are the indices to
@@ -122,6 +125,7 @@ typedef struct {
         point *coordinates;
         int* boundary_edges;
         std::list<edge*> boundary_cycles[max_boundaries];
+        vertex_config vc;
         CompRow_Mat_double hessian;
 } mesh;
 
@@ -150,6 +154,7 @@ void sort_incident_triangles(vertex *v);
 void *get_common_triangle(edge *e1, edge *e2);
 void add_link_edges(mesh *m);
 void construct_vertex_hessian_pointers(mesh *m);
+void construct_vertex_inner_angle_pointers(mesh *m);
 int get_vertex_position_in_triangle(vertex *v, triangle *t);
 point* get_coordinate(mesh *m, vertex *v);
 

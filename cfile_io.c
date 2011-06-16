@@ -13,6 +13,7 @@
 #include "mvblasd.h"
 
 #include "cfile_io.h"
+#include "geodesic.h"
 #include "cmesh.h"
 
 

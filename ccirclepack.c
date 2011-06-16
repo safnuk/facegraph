@@ -10,6 +10,7 @@
 #include "comprow_double.h"
 #include "compcol_double.h"
 #include "mvblasd.h"
+#include "geodesic.h"
 #include "cmesh.h"
 #include "ccirclepack.h"
 

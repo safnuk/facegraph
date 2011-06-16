@@ -12,6 +12,7 @@
 #include "mvblasd.h"
 
 #include "cfile_io.h"
+#include "geodesic.h"
 #include "csimpson.h"
 #include "cmesh.h"
 
@@ -51,6 +52,7 @@ int initialize_mesh(mesh *m, filedata *fd)
         m->f = 0;
         calc_boundaries(m);
         construct_vertex_hessian_pointers(m);
+        construct_vertex_inner_angle_pointers(m);
 }
 
 void double_mesh(mesh *m, mesh *m_double)
@@ -349,6 +351,26 @@ void construct_vertex_hessian_pointers(mesh *m)
                         for (j=0; j<3; j++) {
                                 v->dtheta_du[i][j] = &(t->hessian[j][k]);
                         }
+                }
+        }
+}
+
+/* constructs an array of pointers for each
+ * vertex to the inner angles at the vertex.
+ * The ordering of the array matches the ordering
+ * of the incident triangles.
+ */
+void construct_vertex_inner_angle_pointers(mesh *m)
+{
+        int i, j, k;
+        vertex *v;
+        triangle *t;
+        for(i=0; i<m->ranks[0]; i++) {
+                v = &(m->vertices[i]);
+                for (j=0; j < v->degree-v->boundary; j++) {
+                        t = (triangle*)v->incident_triangles[j];
+                        k = get_vertex_position_in_triangle(v, t);
+                        v->inner_angles[j] = &(t->inner_angles[k]);
                 }
         }
 }

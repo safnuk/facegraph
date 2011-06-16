@@ -15,6 +15,7 @@
 #include "icpre_double.h"
 #include "ilupre_double.h"
 #include "cg.h"
+#include "geodesic.h"
 #include "cmesh.h"
 #include "cconj_grad.h"
 #include "cricci.h"
