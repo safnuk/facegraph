@@ -673,6 +673,22 @@ void calc_edge_length (edge *e)
         }
 }
 
+void calc_boundary_lengths(mesh* m)
+{
+        int i;
+        double length;
+        std::list<edge*>::iterator j;
+
+        for (i=0; i<m->boundary_count; i++) {
+                length = 0;
+                j = m->boundary_cycles[i].begin();
+                for(; j != m->boundary_cycles[i].end(); j++) {
+                        length += (*j)->length;
+                }
+                m->boundary_lengths[i] = length;
+        }
+}
+
 /* Calculates the the negative of the Hessian matrix [dK_i / du_j], given 
  * that edge angles and radius parameters are set.
  */

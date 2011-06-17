@@ -27,6 +27,7 @@ void run_ricci_flow(mesh *m)
         initialize_ricci_solver(&r, m, &rc);
         calc_flat_metric(&r);
         deallocate_ricci_solver(&r);
+        calc_boundary_lengths(m);
 }
 
 void initialize_ricci_solver(ricci_solver *r, mesh *m, ricci_config *rc)

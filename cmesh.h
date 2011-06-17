@@ -34,8 +34,8 @@ typedef struct {
         double s;
         double s0;
         int index;
-        list<geodesic> geodesics;
-        geodesic shortest_path;
+        std::list<geodesic> geodesics;
+        geodesic shortest_paths[max_boundaries];
 } vertex;
 
 /* Struct for encoding edge connectivity. Vertices are the indices to
@@ -125,6 +125,7 @@ typedef struct {
         point *coordinates;
         int* boundary_edges;
         std::list<edge*> boundary_cycles[max_boundaries];
+        double boundary_lengths[max_boundaries];
         vertex_config vc;
         CompRow_Mat_double hessian;
 } mesh;
@@ -169,6 +170,7 @@ void calc_edge_lengths(mesh *m);
 void calc_edge_length (edge *e);
 double min(double *x, int n);
 double max(double *x, int n);
+void calc_boundary_lengths(mesh* m);
 
 void calc_hessian(mesh *m);
 void calc_dtheta_dl(triangle *t, double A[3][3]);
