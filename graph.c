@@ -45,10 +45,10 @@ void create_active_list(mesh *m, int b, std::list<vertex*>& active)
         for (cycle=m->boundary_cycles[b].begin(); cycle!=m->boundary_cycles[b].end(); cycle++) {
                 e = *cycle;
                 v = (vertex*)(e->vertices[0]);
-                set_geodesic(v->shortest_paths[b], b, 0, position, M_PI_2);
-                calc_vertex_config(v, &v->shortest_paths[b], b, true;);
+                v->shortest_paths[b].set(b, 0, position, M_PI_2);
+                calc_vertex_config(v, v->shortest_paths[b], true;);
                 active.push_end(v);
-                position += acosh(e->cosh_length);
+                position += e->length;
         }
 }
 
@@ -86,7 +86,7 @@ void run_through_active_list(mesh *m, int b, std::list<vertex*>& active)
  * and which are closer. The calculation is simpler for
  * points known to be on the boundary, hence the flag on_boundary. 
  */
-void calc_vertex_config(vertex* v, geodesic* g, int b, bool on_boundary=false)
+void calc_vertex_config(vertex* v, geodesic const& g, bool on_boundary=false)
 {
         const double fudge_factor = 1.0001;
         int i;
@@ -100,11 +100,11 @@ void calc_vertex_config(vertex* v, geodesic* g, int b, bool on_boundary=false)
                 return;
         }
         for (i=0; i < v->degree; i++) {
-                calc_next_vertex_geodesic(NULL, v, i, g_next, b, g); // only interested in geodesic length
-                if (g > v->shortest_paths[b] * fudge_factor) {
+                calc_next_vertex_geodesic(NULL, v, i, g_next, -1, &g); // only interested in geodesic length
+                if (g_next > g * fudge_factor) {
                         v->vc.farther_vertices.push_end(i);
                 }
-                if (g < v->shortest_paths[b] / fudge_factor) {
+                if (g_next < g / fudge_factor) {
                         v->vc.closer_vertices.push_end((vertex*)(v->incident_vertices[i]));
                 }
         }
@@ -115,7 +115,7 @@ void calc_vertex_config(vertex* v, geodesic* g, int b, bool on_boundary=false)
  * calculates the geodesic from boundary b to the vertex
  * v->incident_vertices[k].
  */
-void calc_next_vertex_geodesic(mesh* m, vertex* v, int k, geodesic& g, int b, geodesic* g_source=NULL)
+void calc_next_vertex_geodesic(mesh* m, vertex* v, int k, geodesic& g, int b, geodesic const* g_source=NULL)
 {
         int i;
         vertex *v_next;

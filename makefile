@@ -12,6 +12,8 @@ HEADERS = \
 	   cfile_io.h		\
 		 geodesic.h
 	   csimpson.h		\
+		 geodesic.h		\
+		 graph.h		\
 	   cmesh.h
 
 OBJS =  \
@@ -20,6 +22,8 @@ OBJS =  \
 	   ccirclepack.o	\
 	   cfile_io.o		\
 	   csimpson.o		\
+		 graph.o		\
+		 geodesic.o		\
 	   cmesh.o
 
 main : $(OBJS)
@@ -39,6 +43,12 @@ cfile_io.o : cfile_io.c $(HEADERS)
 
 csimpson.o : csimpson.c $(HEADERS)
 	$(CC) $(DEBUG) $(CFLAGS) -c csimpson.c
+
+graph.o : graph.c $(HEADERS)
+	$(CC) $(DEBUG) $(CFLAGS) -c graph.c
+
+geodesic.o : geodesic.c $(HEADERS)
+	$(CC) $(DEBUG) $(CFLAGS) -c geodesic.c
 
 cmesh.o : cmesh.c $(HEADERS)
 	$(CC) $(DEBUG) $(CFLAGS) -c cmesh.c
