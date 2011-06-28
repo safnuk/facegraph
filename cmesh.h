@@ -22,7 +22,9 @@
  * s = (e^r - 1) / (e^r + 1), where r is the radius from the circle
  * packing metric.
  */
-typedef struct {
+struct vertex {
+  public:
+        vertex() : geodesics() {}
         int degree;    
         int boundary;
         void *incident_vertices[max_degree];
@@ -36,7 +38,9 @@ typedef struct {
         int index;
         std::list<geodesic> geodesics;
         geodesic shortest_paths[max_boundaries];
-} vertex;
+        vertex_config vc;
+};
+
 
 /* Struct for encoding edge connectivity. Vertices are the indices to
  * the two endpoints of the edge. If vertices are listed in the order
@@ -171,6 +175,8 @@ void calc_edge_length (edge *e);
 double min(double *x, int n);
 double max(double *x, int n);
 void calc_boundary_lengths(mesh* m);
+
+void clear_geodesic_lists(mesh* m);
 
 void calc_hessian(mesh *m);
 void calc_dtheta_dl(triangle *t, double A[3][3]);

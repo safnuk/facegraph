@@ -7,7 +7,7 @@
 geodesic average(const std::list<geodesic>& g)
 {
         geodesic result;
-        std::list<geodesic>::iterator i = g.begin();
+        std::list<geodesic>::const_iterator i = g.begin();
         for (;i!=g.end(); i++) {
                 result += *i;
         }
@@ -20,7 +20,7 @@ geodesic average(const std::list<geodesic>& g)
 geodesic std_dev(const std::list<geodesic>& g)
 {
         geodesic result;
-        std::list<geodesic>::iterator i = g.begin();
+        std::list<geodesic>::const_iterator i = g.begin();
         for (; i!=g.end(); i++) {
                 result += (*i) * (*i);
         }

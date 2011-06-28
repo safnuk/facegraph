@@ -17,26 +17,30 @@ struct geodesic {
     double angle;
     geodesic(int b=0, double l=0, double p=0, double a=0) :
       boundary(b), length(l), position(p), angle(a) {}
-    bool operator<(const geodesic& g) {return length < g.length;}
-    bool operator<=(const geodesic& g) {return length <= g.length;}
-    bool operator>(const geodesic& g) {return length > g.length;}
-    bool operator>=(const geodesic& g) {return length >= g.length;}
-    geodesic operator+(const geodesic& g) {
+    bool operator<(const geodesic& g) const {return length < g.length;}
+    bool operator<=(const geodesic& g) const {return length <= g.length;}
+    bool operator>(const geodesic& g) const {return length > g.length;}
+    bool operator>=(const geodesic& g) const {return length >= g.length;}
+    geodesic operator+(const geodesic& g) const {
       geodesic result(boundary, length+g.length, position+g.position,
           angle+g.angle);
-      return result}
-    geodesic operator-(const geodesic& g) {
+      return result;
+    }
+    geodesic operator-(const geodesic& g) const {
       geodesic result(boundary, length-g.length, position-g.position,
           angle-g.angle);
-      return result}
-    geodesic operator*(const geodesic& g) {
+      return result;
+    }
+    geodesic operator*(const geodesic& g) const {
       geodesic result(boundary, length*g.length, position*g.position,
           angle*g.angle);
-      return result}
-    geodesic operator/(const geodesic& g) {
+      return result;
+    }
+    geodesic operator/(const geodesic& g) const {
       geodesic result(boundary, length/g.length, position/g.position,
           angle/g.angle);
-      return result}
+      return result;
+    }
     geodesic operator+=(const geodesic& g) {
       length+=g.length; position+=g.position; angle+=g.angle;
       return *this;
@@ -61,9 +65,12 @@ struct geodesic {
       length/=d; position/=d; angle/=d;
       return *this;
     }
-    set(int b, double l, double p, double a)
+    void assign_values(int b, double l, double p, double a)
       {boundary=b; length=l; position=p; angle=a;}
 };
+
+
+struct vertex;
 
 /* Struct used to encode which incident vertices
  * are closer to the boundary, and which are further.
@@ -76,10 +83,10 @@ struct geodesic {
  * the closer ones need to be easily removed from the list as they
  * are hit.
  */
-typedef struct {
+struct vertex_config {
   std::list<int> farther_vertices;
   std::list<vertex*> closer_vertices;
-} vertex_config;
+};
 
 geodesic average(const std::list<geodesic>& g);
 geodesic std_dev(const std::list<geodesic>& g);

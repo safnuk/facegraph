@@ -13,6 +13,7 @@
 #include "cmesh.h"
 #include "ccirclepack.h"
 #include "cricci.h"
+#include "graph.h"
 
 int main(int argc, char *argv[]) 
 {
@@ -31,5 +32,11 @@ int main(int argc, char *argv[])
         if (argc == 3) {
                 save_mesh(argv[2], (void *) &m);
         }
+        calc_boundary_lengths(&m);
+        for (int i=0; i<m.boundary_count; ++i) {
+                printf("B%i: %f; ", i, m.boundary_lengths[i]);
+        }
+        printf("\n");
+        calc_vertex_boundary_distances(&m);
         deallocate_mesh(&m);
 }

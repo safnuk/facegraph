@@ -334,6 +334,19 @@ void add_link_edges(mesh *m)
         }
 }
 
+void clear_geodesic_lists(mesh* m)
+{
+        vertex* v;
+        geodesic g(0,0,0,0);
+
+        for (int i=0; i<m->ranks[0]; ++i) {
+                v = &(m->vertices[i]);
+                // TODO: Why is this necessary with empty lists?
+                v->geodesics.push_back(g);
+                v->geodesics.clear();
+        }
+}
+
 /* Links the hessian data at each vertex to the hessian data recorded
  * at each triangle (the latter is easier to calculate, the former
  * is easier to access when performing Ricci flow).
@@ -683,7 +696,7 @@ void calc_boundary_lengths(mesh* m)
                 length = 0;
                 j = m->boundary_cycles[i].begin();
                 for(; j != m->boundary_cycles[i].end(); j++) {
-                        length += (*j)->length;
+                        length += acosh((*j)->cosh_length);
                 }
                 m->boundary_lengths[i] = length;
         }

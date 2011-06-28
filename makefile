@@ -10,7 +10,7 @@ HEADERS = \
 	   cricci.h		\
 	   ccirclepack.h	\
 	   cfile_io.h		\
-		 geodesic.h
+		 geodesic.h		\
 	   csimpson.h		\
 		 geodesic.h		\
 		 graph.h		\
