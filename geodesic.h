@@ -27,55 +27,53 @@ struct geodesic {
     geodesic operator+(const geodesic& g) const {
       geodesic result(boundary, length+g.length, position+g.position,
           angle+g.angle);
-      if (boundary != g.boundary) prinf("Boundary mismatch in geodesic +\n");
+      if (boundary != g.boundary) printf("Boundary mismatch in geodesic +\n");
       return result;
     }
     geodesic operator-(const geodesic& g) const {
       geodesic result(boundary, length-g.length, position-g.position,
           angle-g.angle);
-      if (boundary != g.boundary) prinf("Boundary mismatch in geodesic -\n");
+      if (boundary != g.boundary) printf("Boundary mismatch in geodesic -\n");
       return result;
     }
     geodesic operator*(const geodesic& g) const {
       geodesic result(boundary, length*g.length, position*g.position,
           angle*g.angle);
-      if (boundary != g.boundary) prinf("Boundary mismatch in geodesic *\n");
+      if (boundary != g.boundary) printf("Boundary mismatch in geodesic *\n");
       return result;
     }
     geodesic operator/(const geodesic& g) const {
       geodesic result(boundary, length/g.length, position/g.position,
           angle/g.angle);
-      if (boundary != g.boundary) prinf("Boundary mismatch in geodesic /\n");
+      if (boundary != g.boundary) printf("Boundary mismatch in geodesic /\n");
       return result;
     }
     geodesic operator+=(const geodesic& g) {
       length+=g.length; position+=g.position; angle+=g.angle;
-      if (boundary != g.boundary) prinf("Boundary mismatch in geodesic +=\n");
+      if (boundary != g.boundary) printf("Boundary mismatch in geodesic +=\n");
       return *this;
     }
     geodesic operator-=(const geodesic& g) {
       length-=g.length; position-=g.position; angle-=g.angle;
-      if (boundary != g.boundary) prinf("Boundary mismatch in geodesic -=\n");
+      if (boundary != g.boundary) printf("Boundary mismatch in geodesic -=\n");
       return *this;
     }
     geodesic operator*=(const geodesic& g) {
       length*=g.length; position*=g.position; angle*=g.angle;
-      if (boundary != g.boundary) prinf("Boundary mismatch in geodesic *=\n");
+      if (boundary != g.boundary) printf("Boundary mismatch in geodesic *=\n");
       return *this;
     }
     geodesic operator/=(const geodesic& g) {
       length/=g.length; position/=g.position; angle/=g.angle;
-      if (boundary != g.boundary) prinf("Boundary mismatch in geodesic /=\n");
+      if (boundary != g.boundary) printf("Boundary mismatch in geodesic /=\n");
       return *this;
     }
     geodesic operator*=(const double d) {
       length*=d; position*=d; angle*=d;
-      if (boundary != g.boundary) prinf("Boundary mismatch in geodesic *=\n");
       return *this;
     }
     geodesic operator/=(const double d) {
       length/=d; position/=d; angle/=d;
-      if (boundary != g.boundary) prinf("Boundary mismatch in geodesic /=\n");
       return *this;
     }
     void assign_values(int b, double l, double p, double a)
