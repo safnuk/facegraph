@@ -4,6 +4,9 @@
 #define max_degree  15
 #define max_boundaries 4
 
+struct edge;
+struct triangle;
+
 /* Struct which encodes incidence data at a vertex. The list of
  * incident vertices should be in alignment with the list of incident
  * edges. i.e. the first incident vertex should be connected to
@@ -27,12 +30,12 @@ struct vertex {
         vertex() : geodesics() {}
         int degree;    
         int boundary;
-        void *incident_vertices[max_degree];
-        void *incident_triangles[max_degree];
-        void *incident_edges[max_degree];
-        void *link_edges[max_degree];
-        double *dtheta_du[max_degree][3];
-        double *inner_angles[max_degree];
+        vertex* incident_vertices[max_degree];
+        triangle* incident_triangles[max_degree];
+        edge* incident_edges[max_degree];
+        edge* link_edges[max_degree];
+        double* dtheta_du[max_degree][3];
+        double* inner_angles[max_degree];
         double s;
         double s0;
         int index;
@@ -56,14 +59,14 @@ struct vertex {
  * cosh_length stores the hyp cosine of the length of the edge,
  * computed using the circle packing metric.
  */
-typedef struct {
-        void *vertices[2];
-        void *incident_triangles[2];
+struct edge {
+        vertex* vertices[2];
+        triangle* incident_triangles[2];
         double cos_angle;
         double cosh_length;
         double sinh_length;
         int index;
-} edge;
+};
 
 // int get_other_vertex(edge *e, vertex *v);
 
@@ -81,15 +84,15 @@ typedef struct {
  *
  * hessian is the matrix of derivatives [d theta_i / du_j].
  */
-typedef struct {
-        void *vertices[3];
-        void *edges[3];
+struct triangle {
+        vertex* vertices[3];
+        edge* edges[3];
         double inner_angles[3];
         double cos_angles[3];
         double sin_angles[3];
         double hessian[3][3];
         int index;
-} triangle;
+};
 
 /* Struct recording the (x, y, z) coordinates of a point.
  * This is mostly to avoid having to allocate 2D arrays.
@@ -152,11 +155,11 @@ void double_vertices(mesh *m, mesh *m_double);
 void double_edges(mesh *m, mesh *m_double);
 void double_triangles(mesh *m, mesh *m_double);
 void sort_cyclic_order_at_vertices(mesh *m);
-int find_clockwise_edge(vertex *v, void *ie[], void *iv[]);
-int find_counterclockwise_edge(vertex *v, void *ie[], void *iv[]);
-void sort_incident_edges_and_vertices(vertex *v, void *ie[], void *iv[]);
+int find_clockwise_edge(vertex* v, edge* ie[], vertex* iv[]);
+int find_counterclockwise_edge(vertex* v, edge* ie[], vertex* iv[]);
+void sort_incident_edges_and_vertices(vertex* v, edge* ie[], vertex* iv[]);
 void sort_incident_triangles(vertex *v);
-void *get_common_triangle(edge *e1, edge *e2);
+triangle* get_common_triangle(edge *e1, edge *e2);
 void add_link_edges(mesh *m);
 void construct_vertex_hessian_pointers(mesh *m);
 void construct_vertex_inner_angle_pointers(mesh *m);

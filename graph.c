@@ -50,6 +50,9 @@ void create_active_list(mesh *m, int b, std::list<vertex*>& active)
                 active.push_back(v);
                 position += acosh(e->cosh_length);
         }
+        // TODO: remove
+        int length = active.size();
+        return;
 }
 
 /* For every vertex in the active list, calculates the geodesic
@@ -74,12 +77,13 @@ void run_through_active_list(mesh *m, int b, std::list<vertex*>& active)
                         calc_next_vertex_geodesic(m, v, *j, g, b, NULL);
                         v1 = (vertex*)(v->incident_vertices[*j]);
                         add_geodesic_to_vertex(v1, v, g);
-                        if(v1->vc.closer_vertices.empty()) {
+                        if(v1->vc.closer_vertices.empty() && v1->shortest_paths[b].boundary == -1) {
                                 calc_average_geodesic(v1);
                                 active.push_back(v1);
                         }
                 }
                 i = active.erase(i);
+                int length = active.size();
         }
 }
 
@@ -89,7 +93,7 @@ void run_through_active_list(mesh *m, int b, std::list<vertex*>& active)
  */
 void calc_vertex_config(vertex* v, geodesic const& g, bool on_boundary)
 {
-        const double fudge_factor = 1.0001;
+        const double fudge_factor = 1.0000000001;
         int i;
         geodesic g_next;
         v->vc.farther_vertices.clear();
@@ -104,9 +108,12 @@ void calc_vertex_config(vertex* v, geodesic const& g, bool on_boundary)
                 calc_next_vertex_geodesic(NULL, v, i, g_next, -1, &g); // only interested in geodesic length
                 if (g_next.length > g.length * fudge_factor) {
                         v->vc.farther_vertices.push_back(i);
-                }
-                if (g_next.length < g.length / fudge_factor) {
+                } else if (g_next.length < g.length / fudge_factor) {
                         v->vc.closer_vertices.push_back((vertex*)(v->incident_vertices[i]));
+                }
+                // TODO: Remove
+                else {
+                        printf("Fudge factor failed!\n");
                 }
         }
 
@@ -186,9 +193,10 @@ double calc_next_geodesic_edge_angle(vertex *v, vertex* v_next, double beta)
                 printf("Error finding incident vertices in calc_next_geodesic_edge_angle.\n");
                 exit(1);
         }
-        for (i=k; i<v_next->degree; i++) {
+        for (i=k; i<v_next->degree - v_next->boundary; i++) {
                 angle += *(v_next->inner_angles[i]);
         }
+        angle += v_next->boundary * M_PI;
         return normalize_angle(angle);
 }
 
@@ -206,7 +214,15 @@ void add_geodesic_to_vertex(vertex* v, vertex* orig_v, const geodesic& g)
                 calc_vertex_config(v, g, false);
         }
         v->geodesics.push_back(g);
+        int n = v->vc.closer_vertices.size();
         v->vc.closer_vertices.remove(orig_v);
+        // TODO: Remove!
+        if (v->vc.closer_vertices.size() == n) {
+                int i=1;
+        }
+        else {
+                int i=0;
+        }
 }
 
 /* Once the list of geodesics hitting vertex v is generated (from all

@@ -8,7 +8,8 @@ geodesic average(const std::list<geodesic>& g)
 {
         geodesic result;
         std::list<geodesic>::const_iterator i = g.begin();
-        for (;i!=g.end(); i++) {
+        result.boundary = (*i).boundary;
+        for (; i!=g.end(); ++i) {
                 result += *i;
         }
         if (g.size()) {
@@ -21,7 +22,8 @@ geodesic std_dev(const std::list<geodesic>& g)
 {
         geodesic result;
         std::list<geodesic>::const_iterator i = g.begin();
-        for (; i!=g.end(); i++) {
+        result.boundary = (*i).boundary;
+        for (; i!=g.end(); ++i) {
                 result += (*i) * (*i);
         }
         result /= g.size();

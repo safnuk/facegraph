@@ -33,7 +33,7 @@ int initialize_mesh(mesh *m, filedata *fd)
         int edge_count = 0;
         m->ranks[0] = fd->number_of_points;
         m->ranks[2] = fd->number_of_triangles;
-        m->vertices = (vertex*) malloc(m->ranks[0] * sizeof(vertex));
+        m->vertices = new vertex[m->ranks[0]];
         m->edges = (edge*) malloc(max_number_of_edges * sizeof(edge));
         m->triangles = (triangle*) malloc(m->ranks[2] * sizeof(triangle));
         m->coordinates = (point*)malloc(m->ranks[0] * sizeof(point));
@@ -124,7 +124,7 @@ void split_doubled_mesh(mesh *m, mesh *m_double)
 }
 /* Free memory allocated in a previously initialized mesh. */
 void deallocate_mesh(mesh *m) {
-        free(m->vertices);
+        delete [] m->vertices;
         free(m->edges);
         free(m->triangles);
         free(m->coordinates);
@@ -167,9 +167,9 @@ void construct_triangles(face *head, mesh *m)
                         // Add incidence data to vertex and triangle
                         v = &(m->vertices[node->v[j]]);
                         ti = v->degree - v->boundary;
-                        v->incident_triangles[ti] = (void *)t;
+                        v->incident_triangles[ti] = t;
                         (v->boundary)--;
-                        t->vertices[j] = (void *)v;
+                        t->vertices[j] = v;
                 }
                 i++;
         }
@@ -194,17 +194,17 @@ int construct_edges(mesh *m)
                         v2 = (vertex *)(t->vertices[(j+1) % 3]);
                         e = (edge *)get_incident_edge(v1, v2);
                         if (e != NULL) {
-                                e->incident_triangles[1] = (void *)t;
+                                e->incident_triangles[1] = t;
                         }
                         else {
                                 e = &(m->edges[edge_count]);
                                 edge_count++;
-                                e->incident_triangles[0] = (void *)t;
+                                e->incident_triangles[0] = t;
                                 e->incident_triangles[1] = NULL;
                                 add_incident_vertices_and_edge(v1, v2, e);
                         }
                         opposite_edge = (j+2) % 3;
-                        t->edges[opposite_edge] = (void *)e;
+                        t->edges[opposite_edge] = e;
                 }
         }
         return edge_count;
@@ -285,9 +285,9 @@ edge* get_next_boundary_edge(edge* e)
  */
 void sort_cyclic_order_at_vertices(mesh *m)
 {
-        vertex *v;
-        void *iv[max_degree * 2 + 1];
-        void *ie[max_degree * 2 + 1];
+        vertex* v;
+        vertex* iv[max_degree * 2 + 1];
+        edge* ie[max_degree * 2 + 1];
         int head, tail, i;
         
         for (i=0; i < m->ranks[0]; i++) {
@@ -341,8 +341,6 @@ void clear_geodesic_lists(mesh* m)
 
         for (int i=0; i<m->ranks[0]; ++i) {
                 v = &(m->vertices[i]);
-                // TODO: Why is this necessary with empty lists?
-                v->geodesics.push_back(g);
                 v->geodesics.clear();
         }
 }
@@ -411,7 +409,7 @@ int get_vertex_position_in_triangle(vertex *v, triangle *t)
  * If there is no edge clockwise from ie[0] (it is on the boundary)
  * then the function returns 0. Otherwise, it returns 1.
  */
-int find_clockwise_edge(vertex *v, void *ie[], void *iv[])
+int find_clockwise_edge(vertex* v, edge* ie[], vertex* iv[])
 {
         int i;
         edge *e = (edge *)ie[0];
@@ -442,7 +440,7 @@ int find_clockwise_edge(vertex *v, void *ie[], void *iv[])
  * If there is no edge counterclockwise from ie[0] (it is on the boundary)
  * then the function returns 0. Otherwise, it returns 1.
  */
-int find_counterclockwise_edge(vertex *v, void *ie[], void *iv[])
+int find_counterclockwise_edge(vertex* v, edge* ie[], vertex* iv[])
 {
         int i;
         edge *e = (edge *)ie[0];
@@ -472,7 +470,7 @@ int find_counterclockwise_edge(vertex *v, void *ie[], void *iv[])
  * incident_vertices. The assumption is that ie and iv are sorted
  * lists which just need to be recorded.
  */
-void sort_incident_edges_and_vertices(vertex *v, void *ie[], void *iv[])
+void sort_incident_edges_and_vertices(vertex* v, edge* ie[], vertex* iv[])
 {
         int i;
         for (i=0; i<v->degree; i++) {
@@ -498,7 +496,7 @@ void sort_incident_triangles(vertex *v)
 /* Returns a pointer to the triangle containing edges e1 and e2.
  * Exits (ungracefully) if the edges are not common to a triangle.
  */
-void *get_common_triangle(edge *e1, edge *e2)
+triangle* get_common_triangle(edge *e1, edge *e2)
 {
         int i, j;
         triangle *t;
@@ -507,7 +505,7 @@ void *get_common_triangle(edge *e1, edge *e2)
                 if (t) {
                         for (j=0; j<3; j++) {
                                 if (t->edges[j] == e2)
-                                        return (void *)t;
+                                        return t;
                         }
                 }
         } 
@@ -904,16 +902,16 @@ void * get_incident_edge(vertex *v1, vertex *v2)
  */
 void add_incident_vertices_and_edge(vertex *v1, vertex *v2, edge *e)
 {
-        v1->incident_vertices[v1->degree] = (void *)v2;
-        v1->incident_edges[v1->degree] = (void *)e;
+        v1->incident_vertices[v1->degree] = v2;
+        v1->incident_edges[v1->degree] = e;
         (v1->degree)++;;
         (v1->boundary)++;
-        v2->incident_vertices[v2->degree] = (void *)v1;
-        v2->incident_edges[v2->degree] = (void *)e;
+        v2->incident_vertices[v2->degree] = v1;
+        v2->incident_edges[v2->degree] = e;
         (v2->degree)++;;
         (v2->boundary)++;
-        e->vertices[0] = (void *)v1;
-        e->vertices[1] = (void *)v2;
+        e->vertices[0] = v1;
+        e->vertices[1] = v2;
 }
 
 /* Checks to see if all arrays allocated in initialize_mesh are valid pointers. */

@@ -10,12 +10,15 @@
  *      angle = counterclockwise rotation from the geodesic to
  *              the first edge incident to the vertex
  */
+
+// TODO: Remove boundary chceks.
+
 struct geodesic {
     int boundary;
     double length;
     double position;
     double angle;
-    geodesic(int b=0, double l=0, double p=0, double a=0) :
+    geodesic(int b=-1, double l=0, double p=0, double a=0) :
       boundary(b), length(l), position(p), angle(a) {}
     bool operator<(const geodesic& g) const {return length < g.length;}
     bool operator<=(const geodesic& g) const {return length <= g.length;}
@@ -24,45 +27,55 @@ struct geodesic {
     geodesic operator+(const geodesic& g) const {
       geodesic result(boundary, length+g.length, position+g.position,
           angle+g.angle);
+      if (boundary != g.boundary) prinf("Boundary mismatch in geodesic +\n");
       return result;
     }
     geodesic operator-(const geodesic& g) const {
       geodesic result(boundary, length-g.length, position-g.position,
           angle-g.angle);
+      if (boundary != g.boundary) prinf("Boundary mismatch in geodesic -\n");
       return result;
     }
     geodesic operator*(const geodesic& g) const {
       geodesic result(boundary, length*g.length, position*g.position,
           angle*g.angle);
+      if (boundary != g.boundary) prinf("Boundary mismatch in geodesic *\n");
       return result;
     }
     geodesic operator/(const geodesic& g) const {
       geodesic result(boundary, length/g.length, position/g.position,
           angle/g.angle);
+      if (boundary != g.boundary) prinf("Boundary mismatch in geodesic /\n");
       return result;
     }
     geodesic operator+=(const geodesic& g) {
       length+=g.length; position+=g.position; angle+=g.angle;
+      if (boundary != g.boundary) prinf("Boundary mismatch in geodesic +=\n");
       return *this;
     }
     geodesic operator-=(const geodesic& g) {
       length-=g.length; position-=g.position; angle-=g.angle;
+      if (boundary != g.boundary) prinf("Boundary mismatch in geodesic -=\n");
       return *this;
     }
     geodesic operator*=(const geodesic& g) {
       length*=g.length; position*=g.position; angle*=g.angle;
+      if (boundary != g.boundary) prinf("Boundary mismatch in geodesic *=\n");
       return *this;
     }
     geodesic operator/=(const geodesic& g) {
       length/=g.length; position/=g.position; angle/=g.angle;
+      if (boundary != g.boundary) prinf("Boundary mismatch in geodesic /=\n");
       return *this;
     }
     geodesic operator*=(const double d) {
       length*=d; position*=d; angle*=d;
+      if (boundary != g.boundary) prinf("Boundary mismatch in geodesic *=\n");
       return *this;
     }
     geodesic operator/=(const double d) {
       length/=d; position/=d; angle/=d;
+      if (boundary != g.boundary) prinf("Boundary mismatch in geodesic /=\n");
       return *this;
     }
     void assign_values(int b, double l, double p, double a)
