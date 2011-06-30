@@ -12,6 +12,7 @@ struct vertex;
  *      angle = counterclockwise rotation from the geodesic to
  *              the first edge incident to the vertex
  */
+
 // TODO: Remove boundary chceks.
 struct geodesic {
     int boundary;

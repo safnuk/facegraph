@@ -160,10 +160,7 @@ void calc_next_vertex_geodesic(mesh* m, vertex* v, int k, geodesic& g, int b, ge
                 g.position = normalize_position(m, path.position + offset, b);
         }
         g.angle = calc_next_geodesic_edge_angle(v, (vertex*)(v->incident_vertices[k]), beta);
-        // TODO: Remove
-        if (g.length != g.length) {
-                printf("NaN found.\n");
-        }
+        g.originating_vertex = v;
 }
 
 /* Assuming that geodesic path hits vertex v, function calculuates the
@@ -221,15 +218,7 @@ void add_geodesic_to_vertex(vertex* v, vertex* orig_v, const geodesic& g)
                 calc_vertex_config(v, g, false);
         }
         v->geodesics.push_back(g);
-        int n = v->vc.closer_vertices.size();
         v->vc.closer_vertices.remove(orig_v);
-        // TODO: Remove!
-        if (v->vc.closer_vertices.size() == n) {
-                int i=1;
-        }
-        else {
-                int i=0;
-        }
 }
 
 /* Once the list of geodesics hitting vertex v is generated (from all
