@@ -69,8 +69,9 @@ void save_mesh(char *filename, void *data)
         for (i=0; i < m->ranks[0]; i++) {
                 s = m->vertices[i].s;
                 r = log((1 + s) / (1 - s));
-                fprintf(fp, "Vertex %i %f %f %f %.12f\n", i, m->coordinates[i].x,
-                               m->coordinates[i].y, m->coordinates[i].z, r);
+                fprintf(fp, "Vertex %i %f %f %f %.12f %i\n", i, m->coordinates[i].x,
+                               m->coordinates[i].y, m->coordinates[i].z, r,
+                               m->vertices[i].shortest_path.boundary);
         }
         for (i=0; i < m->ranks[2]; i++) {
                 for (j=0; j<3; j++) {
