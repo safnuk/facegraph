@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <algorithm>
 #include <list>
 #include <iostream>
 
@@ -80,9 +81,26 @@ void run_through_active_list(mesh *m, int b, std::list<vertex*>& active)
                         if((v1->vc.closer_vertices.empty()) && (v1->shortest_paths[b].boundary == -1)) {
                                 geodesic error = calc_average_geodesic(v1);
                                 if (error > kErrorThreshold) { // Non-optimal geodesics in the list
+                                        printf("Vertex %i, Error %f:", v1->index, error.length);
+                                        std::list<geodesic>::iterator temp = v1->geodesics.begin();
+                                        for(; temp != v1->geodesics.end(); ++temp) {
+                                                printf("[B: %i, L: %f, P: %f, A: %f] ",
+                                                                b, (*temp).length,
+                                                                (*temp).position,
+                                                                (*temp).angle);
+                                        }
                                         if (recalc_vertex_geodesic(v1) == kVertexActive) {
                                                 active.push_back(v1);
                                         }
+                                        printf("\n     After: ");
+                                        std::list<geodesic>::iterator temp = v1->geodesics.begin();
+                                        for(; temp != v1->geodesics.end(); ++temp) {
+                                                printf("[B: %i, L: %f, P: %f, A: %f] ",
+                                                                b, (*temp).length,
+                                                                (*temp).position,
+                                                                (*temp).angle);
+                                        }
+                                        printf("\n");
                                 } else {
                                         active.push_back(v1);
                                 }
@@ -104,12 +122,12 @@ int recalc_vertex_geodesic(vertex* v) {
         calc_vertex_config(v, g_min, false);
         std::list<geodesic>::iterator i = v->geodesics.begin();
         while (i != v->geodesics.end()) {
-                std::list<*vertex>::iterator j = find(v->vc.closer_vertices.begin(),
+                std::list<vertex*>::iterator j = std::find(v->vc.closer_vertices.begin(),
                                 v->vc.closer_vertices.end(), (*i).originating_vertex);
                 if (j == v->vc.closer_vertices.end()) {  // vertex not in closer list
-                        i = v->geodesics.remove(i);
+                        i = v->geodesics.erase(i);
                 } else {
-                        v->vc.closer_vertices.remove(j);
+                        v->vc.closer_vertices.erase(j);
                         ++i;
                 }
         }

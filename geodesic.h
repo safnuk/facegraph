@@ -21,7 +21,7 @@ struct geodesic {
     double angle;
     vertex* originating_vertex;
     geodesic(int b=-1, double l=0, double p=0, double a=0) :
-      boundary(b), length(l), position(p), angle(a), originating_vertex(null) {}
+      boundary(b), length(l), position(p), angle(a), originating_vertex(NULL) {}
     bool operator<(const geodesic& g) const {return length < g.length;}
     bool operator<=(const geodesic& g) const {return length <= g.length;}
     bool operator>(const geodesic& g) const {return length > g.length;}
