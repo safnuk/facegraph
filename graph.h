@@ -1,7 +1,7 @@
 // graph.h
 const int kVertexActive = 1;
 const int kVertexNotActive = 0;
-const double kErrorThreshold = 1e-5;
+const double kErrorThreshold = 1e-7;
 
 void calc_vertex_boundary_distances(mesh *m);
 void create_active_list(mesh* m, int b, std::list<vertex*>& active);

@@ -80,27 +80,10 @@ void run_through_active_list(mesh *m, int b, std::list<vertex*>& active)
                         add_geodesic_to_vertex(v1, v, g);
                         if((v1->vc.closer_vertices.empty()) && (v1->shortest_paths[b].boundary == -1)) {
                                 geodesic error = calc_average_geodesic(v1);
-                                if (error > kErrorThreshold) { // Non-optimal geodesics in the list
-                                        printf("Vertex %i, Error %f:", v1->index, error.length);
-                                        std::list<geodesic>::iterator temp = v1->geodesics.begin();
-                                        for(; temp != v1->geodesics.end(); ++temp) {
-                                                printf("[B: %i, L: %f, P: %f, A: %f] ",
-                                                                b, (*temp).length,
-                                                                (*temp).position,
-                                                                (*temp).angle);
-                                        }
+                                if (error.length > kErrorThreshold) { // Non-optimal geodesics in the list
                                         if (recalc_vertex_geodesic(v1) == kVertexActive) {
                                                 active.push_back(v1);
                                         }
-                                        printf("\n     After: ");
-                                        std::list<geodesic>::iterator temp = v1->geodesics.begin();
-                                        for(; temp != v1->geodesics.end(); ++temp) {
-                                                printf("[B: %i, L: %f, P: %f, A: %f] ",
-                                                                b, (*temp).length,
-                                                                (*temp).position,
-                                                                (*temp).angle);
-                                        }
-                                        printf("\n");
                                 } else {
                                         active.push_back(v1);
                                 }
@@ -133,9 +116,6 @@ int recalc_vertex_geodesic(vertex* v) {
         }
         if (v->vc.closer_vertices.empty()) {
                 geodesic error = calc_average_geodesic(v);
-                if (error > kErrorThreshold) {
-                        printf("We're in trouble!\n");
-                }
                 return kVertexActive;
         } else {
                 return kVertexNotActive;
