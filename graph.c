@@ -31,13 +31,30 @@ void calc_cutlocus_graph(mesh* m, ribbon_graph* gamma)
 
 void find_transition_edges(mesh* m, std::list<edge*>& transition_edges)
 {
-
+        edge* e;
+        for(int i=0; i<m->ranks[1]; ++i) {
+                e = &(m->edges[i]);
+                if (e->vertices[0]->shortest_path.boundary != e->vertices[1]->shortest_path.boundary) {
+                        transition_edges.push_back(e);
+                }
+        }
 }
 
 void find_and_sort_transition_vertices(mesh* m, std::list<edge*> const& transition_edges,
                 std::list<graph_vertex>* transition_vertices)
 {
-
+        std::list<edge*>::const_iterator i = transition_edges.begin();
+        for (; i!=transition_edges.end(); ++i) {
+                for (int j=0; j<2; ++j) {
+                        int b = (*i)->vertices[j]->shortest_path.boundary;
+                        int edge_index = get_edge_position_at_vertex((*i), (*i)->vertices[j]);
+                        graph_vertex v((*i)->vertices[j], (*i)->vertices[(j+1)%2], (*i), edge_index);
+                        transition_vertices[b].push_back(v);
+                }
+        }
+        for (int j=0; j<m->boundary_count; ++j) {
+                std::sort(transition_vertices[j]);
+        }
 }
 
 void calc_graph_cycles(mesh* m, std::list<graph_vertex> const* transition_vertices, 
@@ -353,6 +370,34 @@ double normalize_position(mesh* m, double position, int boundary)
                 return normalize_position(m, position + m->boundary_lengths[boundary], boundary);
         } else {
                 return position;
+        }
+}
+
+bool graph_vertex::operator<(graph_vertex const& gv) const
+{
+        if (this->v != gv->v) {
+                return this->v->shortest_path.position < gv.v->shortest_path.position;
+        }
+}
+
+bool graph_vertex::operator<=(graph_vertex const& gv) const
+{
+        if (this->v != gv->v) {
+                return this->v->shortest_path.position <= gv.v->shortest_path.position;
+        }
+}
+
+bool graph_vertex::operator>(graph_vertex const& gv) const
+{
+        if (this->v != gv->v) {
+                return this->v->shortest_path.position > gv.v->shortest_path.position;
+        }
+}
+
+bool graph_vertex::operator>=(graph_vertex const& gv) const
+{
+        if (this->v != gv->v) {
+                return this->v->shortest_path.position >= gv.v->shortest_path.position;
         }
 }
 

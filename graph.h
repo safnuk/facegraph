@@ -16,10 +16,16 @@ const double kErrorThreshold = 1e-7;
  *      v_opposiste points to the other vertex in e
  */
 struct graph_vertex {
+  graph_vertex(vertex* v, vertex* v_opposite, edge* e, int edge_index) :
+    v(v), v_opposite(v_opposite), e(e), edge_index(edge_index) {}
+  bool operator<(graph_vertex const& gv) const;
+  bool operator<=(graph_vertex const& gv) const;
+  bool operator>(graph_vertex const& gv) const;
+  bool operator>=(graph_vertex const& gv) const;
   vertex* v;
+  vertex* v_opposite;
   edge* e;
   int edge_index;
-  vertex* v_opposite;
 };
 
 struct ribbon_graph {

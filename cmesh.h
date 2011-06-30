@@ -165,6 +165,7 @@ void add_link_edges(mesh *m);
 void construct_vertex_hessian_pointers(mesh *m);
 void construct_vertex_inner_angle_pointers(mesh *m);
 int get_vertex_position_in_triangle(vertex *v, triangle *t);
+int get_edge_position_at_vertex(edge* e, vertex* v);
 point* get_coordinate(mesh *m, vertex *v);
 
 double calc_distance(point *p1, point *p2);

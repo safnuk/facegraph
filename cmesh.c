@@ -404,6 +404,21 @@ int get_vertex_position_in_triangle(vertex *v, triangle *t)
 }
 
 
+/* Assuming that edge e is incident to vertex v, function
+ * returns the index of the edge within v->incident_edges.
+ *
+ * Exits rudely if the edge is not incident.
+ */
+int get_edge_position_at_vertex(edge* e, vertex* v)
+{
+        for (int i=0; i<v->degree; ++i) {
+                if (e == (v->incident_edges[i])) {
+                        return i;
+                }
+        }
+        printf("Edge is not incident to vertex - something is wrong!\n");
+        exit(1);
+}
 /* Finds the edge incident to v, immediately clockwise from ie[0],
  * and records it in ie[-1]. Does the same for the vertices.
  * If there is no edge clockwise from ie[0] (it is on the boundary)
