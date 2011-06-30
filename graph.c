@@ -66,12 +66,10 @@ void create_active_list(mesh *m, int b, std::list<vertex*>& active)
  */
 void run_through_active_list(mesh *m, int b, std::list<vertex*>& active)
 {
-        const double error_threshold = 1e-7;
         std::list<vertex*>::iterator i = active.begin();
         vertex* v;
         vertex* v1;
         geodesic g;
-        printf("======================\nBoundary %i\n", b);
         while (i!=active.end()) {
                 v = *i;
                 std::list<int>::iterator j = v->vc.farther_vertices.begin();
@@ -81,13 +79,48 @@ void run_through_active_list(mesh *m, int b, std::list<vertex*>& active)
                         add_geodesic_to_vertex(v1, v, g);
                         if((v1->vc.closer_vertices.empty()) && (v1->shortest_paths[b].boundary == -1)) {
                                 geodesic error = calc_average_geodesic(v1);
-                                if (error > error_threshold) { // Non-optimal geodesics in the list
-
+                                if (error > kErrorThreshold) { // Non-optimal geodesics in the list
+                                        if (recalc_vertex_geodesic(v1) == kVertexActive) {
+                                                active.push_back(v1);
+                                        }
+                                } else {
+                                        active.push_back(v1);
                                 }
-                                active.push_back(v1);
                         }
                 }
                 i = active.erase(i);
+        }
+}
+
+/* For a vertex which has been hit with non-optimal geodesics,
+ * this function recalculate the shortest path by restricting 
+ * to optimal geodesics.
+ *
+ * Returns the new status of the vertex (active or not).
+ */
+int recalc_vertex_geodesic(vertex* v) {
+        geodesic g_min = *(std::min_element(v->geodesics.begin(), 
+                                v->geodesics.end()));
+        calc_vertex_config(v, g_min, false);
+        std::list<geodesic>::iterator i = v->geodesics.begin();
+        while (i != v->geodesics.end()) {
+                std::list<*vertex>::iterator j = find(v->vc.closer_vertices.begin(),
+                                v->vc.closer_vertices.end(), (*i).originating_vertex);
+                if (j == v->vc.closer_vertices.end()) {  // vertex not in closer list
+                        i = v->geodesics.remove(i);
+                } else {
+                        v->vc.closer_vertices.remove(j);
+                        ++i;
+                }
+        }
+        if (v->vc.closer_vertices.empty()) {
+                geodesic error = calc_average_geodesic(v);
+                if (error > kErrorThreshold) {
+                        printf("We're in trouble!\n");
+                }
+                return kVertexActive;
+        } else {
+                return kVertexNotActive;
         }
 }
 
