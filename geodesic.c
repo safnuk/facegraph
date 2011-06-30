@@ -27,7 +27,7 @@ geodesic std_dev(const std::list<geodesic>& g)
                 result += (*i) * (*i);
         }
         result /= g.size();
-        result -= average(g);
+        result -= average(g) * average(g);
         return sqrt(result);
 }
 

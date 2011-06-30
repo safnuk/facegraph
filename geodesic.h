@@ -1,5 +1,7 @@
 // geodesic.h
 
+struct vertex;
+
 /* struct which records the configuration of a geodesic from 
  * boundary to a vertex. The geodesic is perpindicular to the
  * boundary. 
@@ -10,16 +12,15 @@
  *      angle = counterclockwise rotation from the geodesic to
  *              the first edge incident to the vertex
  */
-
 // TODO: Remove boundary chceks.
-
 struct geodesic {
     int boundary;
     double length;
     double position;
     double angle;
+    vertex* originating_vertex;
     geodesic(int b=-1, double l=0, double p=0, double a=0) :
-      boundary(b), length(l), position(p), angle(a) {}
+      boundary(b), length(l), position(p), angle(a), originating_vertex(null) {}
     bool operator<(const geodesic& g) const {return length < g.length;}
     bool operator<=(const geodesic& g) const {return length <= g.length;}
     bool operator>(const geodesic& g) const {return length > g.length;}
@@ -81,7 +82,6 @@ struct geodesic {
 };
 
 
-struct vertex;
 
 /* Struct used to encode which incident vertices
  * are closer to the boundary, and which are further.

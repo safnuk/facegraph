@@ -66,10 +66,12 @@ void create_active_list(mesh *m, int b, std::list<vertex*>& active)
  */
 void run_through_active_list(mesh *m, int b, std::list<vertex*>& active)
 {
+        const double error_threshold = 1e-7;
         std::list<vertex*>::iterator i = active.begin();
         vertex* v;
         vertex* v1;
         geodesic g;
+        printf("======================\nBoundary %i\n", b);
         while (i!=active.end()) {
                 v = *i;
                 std::list<int>::iterator j = v->vc.farther_vertices.begin();
@@ -77,13 +79,15 @@ void run_through_active_list(mesh *m, int b, std::list<vertex*>& active)
                         calc_next_vertex_geodesic(m, v, *j, g, b, NULL);
                         v1 = (vertex*)(v->incident_vertices[*j]);
                         add_geodesic_to_vertex(v1, v, g);
-                        if(v1->vc.closer_vertices.empty() && v1->shortest_paths[b].boundary == -1) {
-                                calc_average_geodesic(v1);
+                        if((v1->vc.closer_vertices.empty()) && (v1->shortest_paths[b].boundary == -1)) {
+                                geodesic error = calc_average_geodesic(v1);
+                                if (error > error_threshold) { // Non-optimal geodesics in the list
+
+                                }
                                 active.push_back(v1);
                         }
                 }
                 i = active.erase(i);
-                int length = active.size();
         }
 }
 
@@ -113,7 +117,7 @@ void calc_vertex_config(vertex* v, geodesic const& g, bool on_boundary)
                 }
                 // TODO: Remove
                 else {
-                        printf("Fudge factor failed!\n");
+                        int j=1;
                 }
         }
 
@@ -156,6 +160,10 @@ void calc_next_vertex_geodesic(mesh* m, vertex* v, int k, geodesic& g, int b, ge
                 g.position = normalize_position(m, path.position + offset, b);
         }
         g.angle = calc_next_geodesic_edge_angle(v, (vertex*)(v->incident_vertices[k]), beta);
+        // TODO: Remove
+        if (g.length != g.length) {
+                printf("NaN found.\n");
+        }
 }
 
 /* Assuming that geodesic path hits vertex v, function calculuates the
@@ -164,9 +172,8 @@ void calc_next_vertex_geodesic(mesh* m, vertex* v, int k, geodesic& g, int b, ge
  */
 double calc_geodesic_edge_angle(vertex *v, const geodesic& path, int k)
 {
-        double alpha;
-        int i;
-        for (i=0; i<k; i++) {
+        double alpha=0;
+        for (int i=0; i<k; i++) {
                 alpha += *(v->inner_angles[i]);
         }
         alpha += path.angle;
