@@ -4,6 +4,7 @@
 #include <math.h>
 #include <algorithm>
 #include <list>
+#include <vector>
 #include <iostream>
 
 #include "coord_double.h"
@@ -15,6 +16,35 @@
 #include "geodesic.h"
 #include "cmesh.h"
 #include "graph.h"
+
+
+void calc_cutlocus_graph(mesh* m, ribbon_graph* gamma)
+{
+        calc_vertex_boundary_distances(m);
+        std::list<edge*> transition edges;
+        find_transistion_edges(m, transition_edges);
+        std::list<graph_vertex>* transition_vertices = new[m->boundary_count];
+        find_and_sort_transition_vertices(m, transition_edges, transition_vertices);
+        calc_graph_cycles(m, transition_vertices, gamma);
+        delete [] transition_vertices;
+}
+
+void find_transition_edges(mesh* m, std::list<edge*>& transition_edges)
+{
+
+}
+
+void find_and_sort_transition_vertices(mesh* m, std::list<edge*> const& transition_edges,
+                std::list<graph_vertex>* transition_vertices)
+{
+
+}
+
+void calc_graph_cycles(mesh* m, std::list<graph_vertex> const* transition_vertices, 
+                ribbon_graph* g)
+{
+
+}
 
 /* Finds the boundary nearest to each vertex and
  * calculates the geodesic realizing the shortest
