@@ -32,6 +32,7 @@ void calc_vertex_boundary_distances(mesh *m)
                 create_active_list(m, i, active);
                 run_through_active_list(m, i, active);
         }
+        calc_closest_boundaries(m);
 }
 
 /* Initializes the list of currently active vertices
@@ -122,6 +123,35 @@ int recalc_vertex_geodesic(vertex* v) {
         }
 }
 
+/* Assuming that the shortest paths to each boundary
+ * have been calculated, function picks out the closest
+ * boundary to each vertex.
+ */
+void calc_closest_boundaries(mesh* m)
+{
+        for (int i=0; i<m->ranks[0]; i++) {
+                vertex* v = &(m->vertices[i]);
+                double min_length = 0;
+                int closest_boundary=-1;
+                int b=0;
+                while ((v->shortest_paths[b].boundary == -1) && (b < max_boundaries)) {
+                        ++b;
+                }
+                if (b >= max_boundaries) {
+                        printf("Vertex not properly initialized in calc_closest_boundaries.\n");
+                        exit(1);
+                }
+                closest_boundary = b;
+                min_length = v->shortest_paths[b].length;
+                for (int j=b; j < max_boundaries; ++j) {
+                        if ((v->shortest_paths[j].boundary != -1) && (v->shortest_paths[j].length < min_length)) {
+                                min_length = v->shortest_paths[j].length;
+                                closest_boundary = v->shortest_paths[j].boundary;
+                        }
+                }
+                v->shortest_path = v->shortest_paths[closest_boundary];
+        }
+}
 /* Calculates which incident vertices are further away from v 
  * and which are closer. The calculation is simpler for
  * points known to be on the boundary, hence the flag on_boundary. 

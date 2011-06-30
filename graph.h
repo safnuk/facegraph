@@ -6,6 +6,7 @@ const double kErrorThreshold = 1e-7;
 void calc_vertex_boundary_distances(mesh *m);
 void create_active_list(mesh* m, int b, std::list<vertex*>& active);
 void run_through_active_list(mesh* m, int b, std::list<vertex*>& active);
+void calc_closest_boundaries(mesh* m);
 int recalc_vertex_geodesic(vertex* v);
 void calc_vertex_config(vertex* v, geodesic const& g, bool on_boundary);
 void calc_next_vertex_geodesic(mesh* m, vertex* v, int k, geodesic& g, int b,

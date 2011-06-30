@@ -41,6 +41,7 @@ struct vertex {
         int index;
         std::list<geodesic> geodesics;
         geodesic shortest_paths[max_boundaries];
+        geodesic shortest_path;
         vertex_config vc;
 };
 
