@@ -25,8 +25,7 @@ struct graph_vertex {
 };
 
 struct ribbon_graph {
-  std::vector<int> half_edges;
-  std::vector<int> vertex_perm;
+  int half_edge_count;
   std::vector<int> edge_perm;
   std::vector<int> face_perm;
   std::vector<double> metric;
@@ -37,7 +36,7 @@ void find_transition_edges(mesh* m, std::list<edge*>& transition_edges);
 void find_and_sort_transition_vertices(mesh* m, std::list<edge*> const& transition_edges,
                 std::list<graph_vertex>* transition_vertices);
 void calc_graph_cycles(mesh* m, std::list<graph_vertex> const* transition_vertices, 
-                ribbon_graph* g);
+                ribbon_graph* gamma);
 void calc_vertex_boundary_distances(mesh *m);
 void create_active_list(mesh* m, int b, std::list<vertex*>& active);
 void run_through_active_list(mesh* m, int b, std::list<vertex*>& active);
@@ -53,3 +52,12 @@ geodesic calc_average_geodesic(vertex* v);
 double normalize_angle(double angle);
 double normalize_position(mesh* m, double position, int boundary);
 bool compare_graph_vertices(graph_vertex const& gv1, graph_vertex const& gv2);
+
+void partition_boundaries(std::list<graph_vertex> const* transition_vertices,
+                          std::list<double>* boundary_partitions);
+void calc_half_edges_and_metric(mesh* m, std::list<double> const* boundary partitions,
+                                ribbon_graph* gamma);
+void calc_boundary_permutation(std::list<double> const* boundary partitions,
+                               ribbon_graph* gamma);
+void calc_edge_permutation(std::list<double> const* boundary partitions,
+                               ribbon_graph* gamma);

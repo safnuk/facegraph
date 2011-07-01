@@ -58,9 +58,14 @@ void find_and_sort_transition_vertices(mesh* m, std::list<edge*> const& transiti
 }
 
 void calc_graph_cycles(mesh* m, std::list<graph_vertex> const* transition_vertices, 
-                ribbon_graph* g)
+                ribbon_graph* gamma)
 {
-
+        std::list<double>* boundary_partitions = new std::list<double>[m->boundary_count];
+        partition_boundaries(transition_vertices, boundary_partitions);
+        calc_half_edges_and_metric(m, boundary_partitions, gamma);
+        calc_boundary_permutation(boundary_partitions, gamma);
+        calc_edge_permutation(boundary_partitions, gamma)
+        delete [] boundary_partitions;
 }
 
 /* Finds the boundary nearest to each vertex and
@@ -388,3 +393,38 @@ bool compare_graph_vertices(graph_vertex const& gv1, graph_vertex const& gv2)
         return g1.position < g2.position;
 }
 
+/* Partition each boundary into components corresponding
+ * to the edges of the ribbon graph. The function looks for
+ * graph_vertices whose opposite vertices change boundaries.
+ */
+void partition_boundaries(std::list<graph_vertex> const* transition_vertices,
+                          std::list<double>* boundary_partitions)
+{
+}
+
+/* Count the number of partitions of the boundary to get the 
+ * number of half edges of the ribbon graph. The distance
+ * between each break in the boundary becomes the graph metric.
+ */
+void calc_half_edges_and_metric(mesh* m, std::list<double> const* boundary partitions,
+                                ribbon_graph* gamma)
+{
+}
+
+/* Create a standard ordering of the half edges by traveling around each
+ * boundary in turn (starting from boundary 0). The first edge on each boundary
+ * is the one with the smallest position value (closest to the starting marked
+ * point on the boundary when traveling in oriented direction).
+ */
+void calc_boundary_permutation(std::list<double> const* boundary partitions,
+                               ribbon_graph* gamma)
+{
+}
+
+/* Calculate the ribbon graph's edge permutation by matching up each half edge
+ * to the corresponding half edge on the opposite boundary.
+ */
+void calc_edge_permutation(std::list<double> const* boundary partitions,
+                               ribbon_graph* gamma)
+{
+}
