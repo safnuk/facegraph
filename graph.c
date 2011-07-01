@@ -128,6 +128,8 @@ void run_through_active_list(mesh *m, int b, std::list<vertex*>& active)
                         add_geodesic_to_vertex(v1, v, g);
                         if((v1->vc.closer_vertices.empty()) && (v1->shortest_paths[b].boundary == -1)) {
                                 geodesic error = calc_average_geodesic(v1);
+                                // TODO: Check for large position error (circle
+                                // issue)
                                 if (error.length > kErrorThreshold) { // Non-optimal geodesics in the list
                                         if (recalc_vertex_geodesic(v1) == kVertexActive) {
                                                 active.push_back(v1);
@@ -266,6 +268,8 @@ void calc_next_vertex_geodesic(mesh* m, vertex* v, int k, geodesic& g, int b, ge
         beta *= sign;
         if (m) {
                 g.position = normalize_position(m, path.position + offset, b);
+        } else {
+                g.position = path.position + offset;
         }
         g.angle = calc_next_geodesic_edge_angle(v, (vertex*)(v->incident_vertices[k]), beta);
         g.originating_vertex = v;
@@ -378,6 +382,10 @@ bool graph_vertex::operator<(graph_vertex const& gv) const
         if (this->v != gv->v) {
                 return this->v->shortest_path.position < gv.v->shortest_path.position;
         }
+        geodesic g1, g2;
+        calc_next_vertex_geodesic(NULL, this->v, this->edge_index, g1, this->v->shortest_path.boundary, NULL);
+        calc_next_vertex_geodesic(NULL, gv->v, gv>edge_index, g2, gv>v->shortest_path.boundary, NULL);
+        return g1.position < g2.position;
 }
 
 bool graph_vertex::operator<=(graph_vertex const& gv) const
@@ -385,6 +393,10 @@ bool graph_vertex::operator<=(graph_vertex const& gv) const
         if (this->v != gv->v) {
                 return this->v->shortest_path.position <= gv.v->shortest_path.position;
         }
+        geodesic g1, g2;
+        calc_next_vertex_geodesic(NULL, this->v, this->edge_index, g1, this->v->shortest_path.boundary, NULL);
+        calc_next_vertex_geodesic(NULL, gv->v, gv>edge_index, g2, gv>v->shortest_path.boundary, NULL);
+        return g1.position <= g2.position;
 }
 
 bool graph_vertex::operator>(graph_vertex const& gv) const
@@ -392,6 +404,10 @@ bool graph_vertex::operator>(graph_vertex const& gv) const
         if (this->v != gv->v) {
                 return this->v->shortest_path.position > gv.v->shortest_path.position;
         }
+        geodesic g1, g2;
+        calc_next_vertex_geodesic(NULL, this->v, this->edge_index, g1, this->v->shortest_path.boundary, NULL);
+        calc_next_vertex_geodesic(NULL, gv->v, gv>edge_index, g2, gv>v->shortest_path.boundary, NULL);
+        return g1.position > g2.position;
 }
 
 bool graph_vertex::operator>=(graph_vertex const& gv) const
@@ -399,5 +415,9 @@ bool graph_vertex::operator>=(graph_vertex const& gv) const
         if (this->v != gv->v) {
                 return this->v->shortest_path.position >= gv.v->shortest_path.position;
         }
+        geodesic g1, g2;
+        calc_next_vertex_geodesic(NULL, this->v, this->edge_index, g1, this->v->shortest_path.boundary, NULL);
+        calc_next_vertex_geodesic(NULL, gv->v, gv>edge_index, g2, gv>v->shortest_path.boundary, NULL);
+        return g1.position >= g2.position;
 }
 
