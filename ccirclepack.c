@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <lbfgs.h>
 #include <math.h>
+#include <vector>
 #include <list>
 #include "cfile_io.h"
 #include "coord_double.h"

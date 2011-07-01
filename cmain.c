@@ -2,6 +2,7 @@
 //
 #include <stdlib.h>
 #include <stdio.h>
+#include <vector>
 #include <list>
 #include <lbfgs.h>
 #include "coord_double.h"

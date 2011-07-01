@@ -21,9 +21,9 @@
 void calc_cutlocus_graph(mesh* m, ribbon_graph* gamma)
 {
         calc_vertex_boundary_distances(m);
-        std::list<edge*> transition edges;
-        find_transistion_edges(m, transition_edges);
-        std::list<graph_vertex>* transition_vertices = new[m->boundary_count];
+        std::list<edge*> transition_edges;
+        find_transition_edges(m, transition_edges);
+        std::list<graph_vertex>* transition_vertices = new std::list<graph_vertex> [m->boundary_count];
         find_and_sort_transition_vertices(m, transition_edges, transition_vertices);
         calc_graph_cycles(m, transition_vertices, gamma);
         delete [] transition_vertices;
@@ -53,7 +53,7 @@ void find_and_sort_transition_vertices(mesh* m, std::list<edge*> const& transiti
                 }
         }
         for (int j=0; j<m->boundary_count; ++j) {
-                std::sort(transition_vertices[j]);
+                transition_vertices[j].sort(compare_graph_vertices);
         }
 }
 
@@ -377,47 +377,14 @@ double normalize_position(mesh* m, double position, int boundary)
         }
 }
 
-bool graph_vertex::operator<(graph_vertex const& gv) const
+bool compare_graph_vertices(graph_vertex const& gv1, graph_vertex const& gv2)
 {
-        if (this->v != gv->v) {
-                return this->v->shortest_path.position < gv.v->shortest_path.position;
+        if (gv1.v != gv2.v) {
+                return gv1.v->shortest_path.position < gv2.v->shortest_path.position;
         }
         geodesic g1, g2;
-        calc_next_vertex_geodesic(NULL, this->v, this->edge_index, g1, this->v->shortest_path.boundary, NULL);
-        calc_next_vertex_geodesic(NULL, gv->v, gv>edge_index, g2, gv>v->shortest_path.boundary, NULL);
+        calc_next_vertex_geodesic(NULL, gv1.v, gv1.edge_index, g1, gv1.v->shortest_path.boundary, NULL);
+        calc_next_vertex_geodesic(NULL, gv2.v, gv2.edge_index, g2, gv2.v->shortest_path.boundary, NULL);
         return g1.position < g2.position;
-}
-
-bool graph_vertex::operator<=(graph_vertex const& gv) const
-{
-        if (this->v != gv->v) {
-                return this->v->shortest_path.position <= gv.v->shortest_path.position;
-        }
-        geodesic g1, g2;
-        calc_next_vertex_geodesic(NULL, this->v, this->edge_index, g1, this->v->shortest_path.boundary, NULL);
-        calc_next_vertex_geodesic(NULL, gv->v, gv>edge_index, g2, gv>v->shortest_path.boundary, NULL);
-        return g1.position <= g2.position;
-}
-
-bool graph_vertex::operator>(graph_vertex const& gv) const
-{
-        if (this->v != gv->v) {
-                return this->v->shortest_path.position > gv.v->shortest_path.position;
-        }
-        geodesic g1, g2;
-        calc_next_vertex_geodesic(NULL, this->v, this->edge_index, g1, this->v->shortest_path.boundary, NULL);
-        calc_next_vertex_geodesic(NULL, gv->v, gv>edge_index, g2, gv>v->shortest_path.boundary, NULL);
-        return g1.position > g2.position;
-}
-
-bool graph_vertex::operator>=(graph_vertex const& gv) const
-{
-        if (this->v != gv->v) {
-                return this->v->shortest_path.position >= gv.v->shortest_path.position;
-        }
-        geodesic g1, g2;
-        calc_next_vertex_geodesic(NULL, this->v, this->edge_index, g1, this->v->shortest_path.boundary, NULL);
-        calc_next_vertex_geodesic(NULL, gv->v, gv>edge_index, g2, gv>v->shortest_path.boundary, NULL);
-        return g1.position >= g2.position;
 }
 

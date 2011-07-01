@@ -18,10 +18,6 @@ const double kErrorThreshold = 1e-7;
 struct graph_vertex {
   graph_vertex(vertex* v, vertex* v_opposite, edge* e, int edge_index) :
     v(v), v_opposite(v_opposite), e(e), edge_index(edge_index) {}
-  bool operator<(graph_vertex const& gv) const;
-  bool operator<=(graph_vertex const& gv) const;
-  bool operator>(graph_vertex const& gv) const;
-  bool operator>=(graph_vertex const& gv) const;
   vertex* v;
   vertex* v_opposite;
   edge* e;
@@ -29,19 +25,19 @@ struct graph_vertex {
 };
 
 struct ribbon_graph {
-  vector<int> half_edges;
-  vector<int> vertex_perm;
-  vector<int> edge_perm;
-  vector<int> face_perm;
-  vector<double> metric;
+  std::vector<int> half_edges;
+  std::vector<int> vertex_perm;
+  std::vector<int> edge_perm;
+  std::vector<int> face_perm;
+  std::vector<double> metric;
 };
 
 void calc_cutlocus_graph(mesh* m, ribbon_graph* gamma);
 void find_transition_edges(mesh* m, std::list<edge*>& transition_edges);
 void find_and_sort_transition_vertices(mesh* m, std::list<edge*> const& transition_edges,
-                std::list<graph_vertex>* transition_vertices)
+                std::list<graph_vertex>* transition_vertices);
 void calc_graph_cycles(mesh* m, std::list<graph_vertex> const* transition_vertices, 
-                ribbon_graph* g)
+                ribbon_graph* g);
 void calc_vertex_boundary_distances(mesh *m);
 void create_active_list(mesh* m, int b, std::list<vertex*>& active);
 void run_through_active_list(mesh* m, int b, std::list<vertex*>& active);
@@ -56,3 +52,4 @@ void add_geodesic_to_vertex(vertex* v, vertex* orig_v, const geodesic& g);
 geodesic calc_average_geodesic(vertex* v);
 double normalize_angle(double angle);
 double normalize_position(mesh* m, double position, int boundary);
+bool compare_graph_vertices(graph_vertex const& gv1, graph_vertex const& gv2);
