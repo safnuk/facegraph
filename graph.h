@@ -53,11 +53,14 @@ double normalize_angle(double angle);
 double normalize_position(mesh* m, double position, int boundary);
 bool compare_graph_vertices(graph_vertex const& gv1, graph_vertex const& gv2);
 
-void partition_boundaries(std::list<graph_vertex> const* transition_vertices,
+void partition_boundaries(int boundary_count, 
+                          std::list<graph_vertex> const* transition_vertices,
                           std::list<double>* boundary_partitions);
-void calc_half_edges_and_metric(mesh* m, std::list<double> const* boundary partitions,
+void calc_half_edges_and_metric(mesh* m,
+                                std::list<double> const* boundary_partitions,
                                 ribbon_graph* gamma);
-void calc_boundary_permutation(std::list<double> const* boundary partitions,
+void calc_boundary_permutation(mesh* m,
+                               std::list<double> const* boundary_partitions,
                                ribbon_graph* gamma);
-void calc_edge_permutation(std::list<double> const* boundary partitions,
+void calc_edge_permutation(std::list<double> const* boundary_partitions,
                                ribbon_graph* gamma);
