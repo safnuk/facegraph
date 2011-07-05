@@ -62,5 +62,11 @@ void calc_half_edges_and_metric(mesh* m,
 void calc_boundary_permutation(mesh* m,
                                std::list<double> const* boundary_partitions,
                                ribbon_graph* gamma);
-void calc_edge_permutation(std::list<double> const* boundary_partitions,
-                               ribbon_graph* gamma);
+void calc_edge_permutation(mesh const* m,
+                           std::list<graph_vertex> const* transition_vertices,
+                           std::list<double> const* boundary_partitions,
+                           ribbon_graph* gamma);
+int calc_half_edge_index(int boundary, double position, 
+    std::list<double> const* boundary_partitions);
+
+void print_ribbon_graph(ribbon_graph const* gamma);

@@ -20,6 +20,7 @@ int main(int argc, char *argv[])
 {
   filedata data;
   mesh m;
+  ribbon_graph gamma;
   if ( argc < 2 ) {
     printf( "usage: %s in_filename [out_filename]\n", argv[0] );
     return 0;
@@ -35,7 +36,8 @@ int main(int argc, char *argv[])
     printf("B%i: %f; ", i, m.boundary_lengths[i]);
   }
   printf("\n");
-  calc_vertex_boundary_distances(&m);
+  calc_cutlocus_graph(&m, &gamma);
+  print_ribbon_graph(&gamma);
   if (argc == 3) {
     save_mesh(argv[2], (void *) &m);
   }

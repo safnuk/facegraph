@@ -64,7 +64,7 @@ void calc_graph_cycles(mesh* m, std::list<graph_vertex> const* transition_vertic
   partition_boundaries(m->boundary_count, transition_vertices, boundary_partitions);
   calc_half_edges_and_metric(m, boundary_partitions, gamma);
   calc_boundary_permutation(m, boundary_partitions, gamma);
-  calc_edge_permutation(boundary_partitions, gamma);
+  calc_edge_permutation(m, transition_vertices, boundary_partitions, gamma);
   delete [] boundary_partitions;
 }
 
@@ -402,8 +402,7 @@ void partition_boundaries(int boundary_count, std::list<graph_vertex> const* tra
 {
   for (int b=0; b<boundary_count; ++b) {
     std::list<graph_vertex>::const_iterator i;
-    i = transition_vertices[b].back();
-    int prev_opp_boundary = (*i).v_opposite->shortest_path.boundary;
+    int prev_opp_boundary = (transition_vertices[b].back()).v_opposite->shortest_path.boundary;
     for (i=transition_vertices[b].begin(); 
          i!=transition_vertices[b].end(); ++i) {
       int curr_opp_boundary = (*i).v_opposite->shortest_path.boundary;
@@ -426,7 +425,8 @@ void calc_half_edges_and_metric(mesh* m,
   gamma->half_edge_count = 0;
   for (int b=0; b<m->boundary_count; ++b) {
     std::list<double>::const_iterator i = boundary_partitions[b].begin();
-    std::list<double>::const_iterator i_prev = boundary_partitions[b].back();
+    std::list<double>::const_iterator i_prev = boundary_partitions[b].end();
+    --i_prev;
     for (; i!=boundary_partitions[b].end(); ++i) {
       gamma->metric.push_back(normalize_position(m, (*i) - (*i_prev), b));
       ++(gamma->half_edge_count);
@@ -445,6 +445,7 @@ void calc_boundary_permutation(mesh* m,
     std::list<double> const* boundary_partitions,
     ribbon_graph* gamma)
 {
+  gamma->face_perm.resize(gamma->half_edge_count);
   int offset=0;
   for(int b=0; b<m->boundary_count; ++b) {
     int cycle_length = boundary_partitions[b].size();
@@ -463,7 +464,63 @@ void calc_boundary_permutation(mesh* m,
 /* Calculate the ribbon graph's edge permutation by matching up each half edge
  * to the corresponding half edge on the opposite boundary.
  */
-void calc_edge_permutation(std::list<double> const* boundary_partitions,
-             ribbon_graph* gamma)
+void calc_edge_permutation(mesh const* m,
+    std::list<graph_vertex> const* transition_vertices,
+    std::list<double> const* boundary_partitions,
+    ribbon_graph* gamma)
 {
+  for (int b=0; b<m->boundary_count; ++b) {
+    std::list<graph_vertex>::const_iterator i;
+    int prev_opp_boundary = (transition_vertices[b].back()).v_opposite->shortest_path.boundary;
+    double prev_opp_position = (transition_vertices[b].back()).v_opposite->shortest_path.position;
+    for (i=transition_vertices[b].begin(); 
+         i!=transition_vertices[b].end(); ++i) {
+      int curr_opp_boundary = (*i).v_opposite->shortest_path.boundary;
+      if (prev_opp_boundary != curr_opp_boundary) {
+        gamma->edge_perm.push_back(calc_half_edge_index(prev_opp_boundary, 
+              prev_opp_position, boundary_partitions));
+        prev_opp_boundary = curr_opp_boundary;
+        prev_opp_position = (*i).v_opposite->shortest_path.position;
+      }
+    }
+  }
+}
+
+/* Iterates through the boundary parition points, looking for
+ * a paritions containing the point on the given boundary at the
+ * given position.
+ */
+int calc_half_edge_index(int boundary, double position, 
+    std::list<double> const* boundary_partitions)
+{
+  int index = 0;
+  for (int j=0; j<boundary; j++) {
+    index += (boundary_partitions[j]).size();
+  }
+  std::list<double>::const_iterator i = boundary_partitions[boundary].begin();
+  int count=0;
+  for (; i!=boundary_partitions[boundary].end(); ++i) {
+    if ((*i) - position > 0) {
+      return index + count;
+    }
+    ++count;
+  }
+  return index;
+}
+
+void print_ribbon_graph(ribbon_graph const* gamma)
+{
+  printf("Edge perm: [%i", gamma->edge_perm[0]);
+  for (int i=1; i<gamma->half_edge_count; ++i) {
+    printf(", %i", gamma->edge_perm[i]);
+  }
+  printf("]  Face perm: [%i", gamma->face_perm[0]);
+  for (int i=1; i<gamma->half_edge_count; ++i) {
+    printf(", %i", gamma->face_perm[i]);
+  }
+  printf("]  Metric: [%f", gamma->metric[0]);
+  for (int i=1; i<gamma->half_edge_count; ++i) {
+    printf(", %f", gamma->metric[i]);
+  }
+  printf("]\n");
 }
