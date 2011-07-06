@@ -23,7 +23,8 @@ void calc_cutlocus_graph(mesh* m, ribbon_graph* gamma)
   calc_vertex_boundary_distances(m);
   std::list<edge*> transition_edges;
   find_transition_edges(m, transition_edges);
-  std::list<graph_vertex>* transition_vertices = new std::list<graph_vertex> [m->boundary_count];
+  std::list<graph_vertex>* transition_vertices
+    = new std::list<graph_vertex> [m->boundary_count];
   find_and_sort_transition_vertices(m, transition_edges, transition_vertices);
   calc_graph_cycles(m, transition_vertices, gamma);
   delete [] transition_vertices;
@@ -34,13 +35,15 @@ void find_transition_edges(mesh* m, std::list<edge*>& transition_edges)
   edge* e;
   for(int i=0; i<m->ranks[1]; ++i) {
     e = &(m->edges[i]);
-    if (e->vertices[0]->shortest_path.boundary != e->vertices[1]->shortest_path.boundary) {
+    if (e->vertices[0]->shortest_path.boundary
+        != e->vertices[1]->shortest_path.boundary) {
       transition_edges.push_back(e);
     }
   }
 }
 
-void find_and_sort_transition_vertices(mesh* m, std::list<edge*> const& transition_edges,
+void find_and_sort_transition_vertices(mesh* m,
+    std::list<edge*> const& transition_edges,
     std::list<graph_vertex>* transition_vertices)
 {
   std::list<edge*>::const_iterator i = transition_edges.begin();
@@ -48,12 +51,33 @@ void find_and_sort_transition_vertices(mesh* m, std::list<edge*> const& transiti
     for (int j=0; j<2; ++j) {
       int b = (*i)->vertices[j]->shortest_path.boundary;
       int edge_index = get_edge_position_at_vertex((*i), (*i)->vertices[j]);
-      graph_vertex v((*i)->vertices[j], (*i)->vertices[(j+1)%2], (*i), edge_index);
+      graph_vertex v((*i)->vertices[j], (*i)->vertices[(j+1)%2],
+          (*i), edge_index);
       transition_vertices[b].push_back(v);
     }
   }
   for (int j=0; j<m->boundary_count; ++j) {
-    transition_vertices[j].sort(compare_graph_vertices);
+    sort_transition_vertices(transition_vertices[j]);
+  }
+}
+
+void sort_transition_vertices(std::list<graph_vertex>& vertices)
+{
+  vertices.sort(compare_graph_vertices);
+  // make sure adjacent transition edges share a triangle
+  std::list<graph_vertex>::iterator i = vertices.begin();
+  while (i!=vertices.end()) {
+    std::list<graph_vertex>::iterator j = i;
+    ++j;
+    while (!edges_share_triangle((*i).e, (*j).e) && (j!=vertices.end())) {
+      ++j;
+    }
+    ++i;
+    if (i != j) {
+      graph_vertex g = (*i);
+      (*i) = (*j);
+      (*j) = g;
+    }
   }
 }
 
@@ -96,7 +120,8 @@ void create_active_list(mesh *m, int b, std::list<vertex*>& active)
   edge* e;
   std::list<edge*>::iterator cycle; 
   double position = 0;
-  for (cycle=m->boundary_cycles[b].begin(); cycle!=m->boundary_cycles[b].end(); cycle++) {
+  cycle = m->boundary_cycles[b].begin();
+  for (; cycle!=m->boundary_cycles[b].end(); cycle++) {
     e = *cycle;
     v = (vertex*)(e->vertices[0]);
     v->shortest_paths[b].assign_values(b, 0, position, M_PI_2);
@@ -104,8 +129,6 @@ void create_active_list(mesh *m, int b, std::list<vertex*>& active)
     active.push_back(v);
     position += acosh(e->cosh_length);
   }
-  // TODO: remove
-  int length = active.size();
   return;
 }
 
@@ -131,7 +154,8 @@ void run_through_active_list(mesh *m, int b, std::list<vertex*>& active)
       calc_next_vertex_geodesic(m, v, *j, g, b, NULL);
       v1 = (vertex*)(v->incident_vertices[*j]);
       add_geodesic_to_vertex(v1, v, g);
-      if((v1->vc.closer_vertices.empty()) && (v1->shortest_paths[b].boundary == -1)) {
+      if((v1->vc.closer_vertices.empty()) 
+          && (v1->shortest_paths[b].boundary == -1)) {
         geodesic error = calc_average_geodesic(v1);
         // TODO: Check for large position error (circle
         // issue)
@@ -140,6 +164,11 @@ void run_through_active_list(mesh *m, int b, std::list<vertex*>& active)
             active.push_back(v1);
           }
         } else {
+          // TODO: Remove if block
+          if (error.position > kErrorThreshold) {
+            // print_geodesic_list(v);
+            int debug_me = 1;
+          }
           active.push_back(v1);
         }
       }
@@ -171,6 +200,11 @@ int recalc_vertex_geodesic(vertex* v) {
   }
   if (v->vc.closer_vertices.empty()) {
     geodesic error = calc_average_geodesic(v);
+    // TODO: Remove
+    if (error.position > kErrorThreshold) {
+      // print_geodesic_list(v);
+      int debug_me = 1;
+    }
     return kVertexActive;
   } else {
     return kVertexNotActive;
@@ -198,7 +232,8 @@ void calc_closest_boundaries(mesh* m)
     closest_boundary = b;
     min_length = v->shortest_paths[b].length;
     for (int j=b; j < max_boundaries; ++j) {
-      if ((v->shortest_paths[j].boundary != -1) && (v->shortest_paths[j].length < min_length)) {
+      if ((v->shortest_paths[j].boundary != -1) 
+          && (v->shortest_paths[j].length < min_length)) {
         min_length = v->shortest_paths[j].length;
         closest_boundary = v->shortest_paths[j].boundary;
       }
@@ -224,7 +259,7 @@ void calc_vertex_config(vertex* v, geodesic const& g, bool on_boundary)
     return;
   }
   for (i=0; i < v->degree; i++) {
-    calc_next_vertex_geodesic(NULL, v, i, g_next, -1, &g); // only interested in geodesic length
+    calc_next_vertex_geodesic(NULL, v, i, g_next, -1, &g); 
     if (g_next.length > g.length * fudge_factor) {
       v->vc.farther_vertices.push_back(i);
     } else if (g_next.length < g.length / fudge_factor) {
@@ -242,7 +277,8 @@ void calc_vertex_config(vertex* v, geodesic const& g, bool on_boundary)
  * calculates the geodesic from boundary b to the vertex
  * v->incident_vertices[k].
  */
-void calc_next_vertex_geodesic(mesh* m, vertex* v, int k, geodesic& g, int b, geodesic const* g_source)
+void calc_next_vertex_geodesic(mesh* m, vertex* v, int k, geodesic& g,
+    int b, geodesic const* g_source)
 {
   int i;
   vertex *v_next;
@@ -268,7 +304,8 @@ void calc_next_vertex_geodesic(mesh* m, vertex* v, int k, geodesic& g, int b, ge
            e->sinh_length * cos(alpha) );
   offset = acosh((sinh(g.length) * sinh(path.length) + e->cosh_length ) /
       (cosh(g.length) * cosh(path.length)));
-  beta = acos(-1 * cos(alpha) * cosh(offset) + sin(alpha) * sinh(offset) * sinh(path.length));
+  beta = acos(-1 * cos(alpha) * cosh(offset)
+      + sin(alpha) * sinh(offset) * sinh(path.length));
   offset *= sign;
   beta *= sign;
   if (m) {
@@ -276,7 +313,8 @@ void calc_next_vertex_geodesic(mesh* m, vertex* v, int k, geodesic& g, int b, ge
   } else {
     g.position = path.position + offset;
   }
-  g.angle = calc_next_geodesic_edge_angle(v, (vertex*)(v->incident_vertices[k]), beta);
+  g.angle = calc_next_geodesic_edge_angle(v,
+      (vertex*)(v->incident_vertices[k]), beta);
   g.originating_vertex = v;
 }
 
@@ -374,9 +412,11 @@ double normalize_angle(double angle)
 double normalize_position(mesh* m, double position, int boundary)
 {
   if (position >= m->boundary_lengths[boundary]) {
-    return normalize_position(m, position - m->boundary_lengths[boundary], boundary);
+    return normalize_position(m, position - m->boundary_lengths[boundary],
+        boundary);
   } else if (position < 0) {
-    return normalize_position(m, position + m->boundary_lengths[boundary], boundary);
+    return normalize_position(m, position + m->boundary_lengths[boundary],
+        boundary);
   } else {
     return position;
   }
@@ -388,8 +428,10 @@ bool compare_graph_vertices(graph_vertex const& gv1, graph_vertex const& gv2)
     return gv1.v->shortest_path.position < gv2.v->shortest_path.position;
   }
   geodesic g1, g2;
-  calc_next_vertex_geodesic(NULL, gv1.v, gv1.edge_index, g1, gv1.v->shortest_path.boundary, NULL);
-  calc_next_vertex_geodesic(NULL, gv2.v, gv2.edge_index, g2, gv2.v->shortest_path.boundary, NULL);
+  calc_next_vertex_geodesic(NULL, gv1.v, gv1.edge_index, g1,
+      gv1.v->shortest_path.boundary, NULL);
+  calc_next_vertex_geodesic(NULL, gv2.v, gv2.edge_index, g2,
+      gv2.v->shortest_path.boundary, NULL);
   return g1.position < g2.position;
 }
 
@@ -402,7 +444,8 @@ void partition_boundaries(int boundary_count, std::list<graph_vertex> const* tra
 {
   for (int b=0; b<boundary_count; ++b) {
     std::list<graph_vertex>::const_iterator i;
-    int prev_opp_boundary = (transition_vertices[b].back()).v_opposite->shortest_path.boundary;
+    int prev_opp_boundary = 
+      (transition_vertices[b].back()).v_opposite->shortest_path.boundary;
     for (i=transition_vertices[b].begin(); 
          i!=transition_vertices[b].end(); ++i) {
       int curr_opp_boundary = (*i).v_opposite->shortest_path.boundary;
@@ -471,17 +514,19 @@ void calc_edge_permutation(mesh const* m,
 {
   for (int b=0; b<m->boundary_count; ++b) {
     std::list<graph_vertex>::const_iterator i;
-    int prev_opp_boundary = (transition_vertices[b].back()).v_opposite->shortest_path.boundary;
-    double prev_opp_position = (transition_vertices[b].back()).v_opposite->shortest_path.position;
-    for (i=transition_vertices[b].begin(); 
-         i!=transition_vertices[b].end(); ++i) {
+    int prev_opp_boundary
+      = (transition_vertices[b].back()).v_opposite->shortest_path.boundary;
+    double prev_opp_position
+      = (transition_vertices[b].back()).v_opposite->shortest_path.position;
+    i = transition_vertices[b].begin();
+    for (; i!=transition_vertices[b].end(); ++i) {
       int curr_opp_boundary = (*i).v_opposite->shortest_path.boundary;
       if (prev_opp_boundary != curr_opp_boundary) {
         gamma->edge_perm.push_back(calc_half_edge_index(prev_opp_boundary, 
               prev_opp_position, boundary_partitions));
         prev_opp_boundary = curr_opp_boundary;
-        prev_opp_position = (*i).v_opposite->shortest_path.position;
       }
+      prev_opp_position = (*i).v_opposite->shortest_path.position;
     }
   }
 }
@@ -510,17 +555,28 @@ int calc_half_edge_index(int boundary, double position,
 
 void print_ribbon_graph(ribbon_graph const* gamma)
 {
-  printf("Edge perm: [%i", gamma->edge_perm[0]);
+  printf("Edge perm: [0->%i", gamma->edge_perm[0]);
   for (int i=1; i<gamma->half_edge_count; ++i) {
-    printf(", %i", gamma->edge_perm[i]);
+    printf(", %i->%i", i, gamma->edge_perm[i]);
   }
-  printf("]  Face perm: [%i", gamma->face_perm[0]);
+  printf("]\nFace perm: [0->%i", gamma->face_perm[0]);
   for (int i=1; i<gamma->half_edge_count; ++i) {
-    printf(", %i", gamma->face_perm[i]);
+    printf(", %i->%i", i, gamma->face_perm[i]);
   }
-  printf("]  Metric: [%f", gamma->metric[0]);
+  printf("]\nMetric: [0->%f", gamma->metric[0]);
   for (int i=1; i<gamma->half_edge_count; ++i) {
-    printf(", %f", gamma->metric[i]);
+    printf(", %i->%f", i, gamma->metric[i]);
   }
   printf("]\n");
+}
+
+void print_geodesic_list(vertex const* v)
+{
+  printf("V%i: ", v->index);
+  std::list<geodesic>::const_iterator i = v->geodesics.begin();
+  for (; i!=v->geodesics.end(); ++i){
+    printf("[B:%i, L:%f, P:%f, A:%f] ", (*i).boundary, (*i).length,
+        (*i).position, (*i).angle);
+  }
+  printf("\n");
 }

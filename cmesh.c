@@ -420,6 +420,19 @@ int get_edge_position_at_vertex(edge* e, vertex* v)
   printf("Edge is not incident to vertex - something is wrong!\n");
   exit(1);
 }
+
+bool edges_share_triangle(edge* e1, edge* e2)
+{
+  for (int i=0; i<2; ++i) {
+    triangle* t = e1->incident_triangles[i];
+    if (!t) return false;
+    for (int j=0; j<3; ++j) {
+      if (t->edges[j] == e2) return true;
+    }
+  }
+  return false;
+}
+
 /* Finds the edge incident to v, immediately clockwise from ie[0],
  * and records it in ie[-1]. Does the same for the vertices.
  * If there is no edge clockwise from ie[0] (it is on the boundary)

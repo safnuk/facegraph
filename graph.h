@@ -1,7 +1,7 @@
 // graph.h
 const int kVertexActive = 1;
 const int kVertexNotActive = 0;
-const double kErrorThreshold = 1e-7;
+const double kErrorThreshold = 1e-6;
 
 /* Struct used to store information relevant
  * for vertices of the mesh which are adjacent to
@@ -35,6 +35,7 @@ void calc_cutlocus_graph(mesh* m, ribbon_graph* gamma);
 void find_transition_edges(mesh* m, std::list<edge*>& transition_edges);
 void find_and_sort_transition_vertices(mesh* m, std::list<edge*> const& transition_edges,
                 std::list<graph_vertex>* transition_vertices);
+void sort_transition_vertices(std::list<graph_vertex>& vertices);
 void calc_graph_cycles(mesh* m, std::list<graph_vertex> const* transition_vertices, 
                 ribbon_graph* gamma);
 void calc_vertex_boundary_distances(mesh *m);
@@ -70,3 +71,4 @@ int calc_half_edge_index(int boundary, double position,
     std::list<double> const* boundary_partitions);
 
 void print_ribbon_graph(ribbon_graph const* gamma);
+void print_geodesic_list(vertex const* v);
