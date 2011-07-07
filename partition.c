@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <algorithm>
 #include <vector>
 #include <list>
 #include <math.h>
@@ -21,8 +22,8 @@
 #include "graph.h"
 #include "partition.h"
 
-const double kStepSize = 0.1;
-const double kTol = 1e-4;
+const double kStepSize = 1e-4;
+const double kTol = 1e-6;
 const double kErrTol = 1e-6;
 const int kMaxIterations = 100;
 
@@ -55,12 +56,11 @@ double calc_optimal_partition_offset(vertex* v)
     if (status) break;
     status = gsl_multimin_test_gradient(s->gradient, kErrTol);
     if (status == GSL_SUCCESS) {
-      printf("Minimum found at:\n");
+      printf("%5d %.12f %.12f %10.5f\n", iter, 
+          gsl_vector_get(s->x, 0),
+          gsl_vector_get(s->x, 1),
+          s->f);
     }
-    printf("%5d %.5f %.5f %10.5f\n", iter, 
-        gsl_vector_get(s->x, 0),
-        gsl_vector_get(s->x, 1),
-        s->f);
   } while (status == GSL_CONTINUE && iter < kMaxIterations);
 
   double offset = calc_offset(p[0].length, gsl_vector_get(s->x, 0),
@@ -160,8 +160,8 @@ void calc_dl_ddelta(double const* alphas, double delta,
 {
   for (int i=0; i<3; ++i) {
     dl_ddelta[i] = (sinh(p[i].length) * sinh(delta)
-        - cosh(p[i].length) * cosh(delta))
-        / cos(alphas[i]);
+        - cosh(p[i].length) * cosh(delta) * cos(alphas[i])) 
+      / cosh(d[i]);
   }
 }
 
@@ -202,11 +202,11 @@ void calc_vertex_params(vertex const* v, vertex_params* p)
 
 void calc_sort_order(vertex const* v, geodesic* g)
 {
-  std::list<geodesic> copy(v->geodesics);
-  copy.sort();
-  std::list<geodesic>::iterator i = copy.begin();
+  std::vector<geodesic> g_copy(v->shortest_paths, v->shortest_paths+4);
+  std::sort(g_copy.begin(), g_copy.end());
+  std::vector<geodesic>::iterator i = g_copy.begin();
   if ((*i).boundary == -1) {
-    i = copy.erase(i);
+    i = g_copy.erase(i);
   }
   for (int j=0; j<3; ++j) {
     g[j] = *i;

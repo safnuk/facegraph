@@ -89,11 +89,14 @@ void calc_graph_cycles(mesh* m, std::list<graph_vertex> const* transition_vertic
     ribbon_graph* gamma)
 {
   std::list<double>* boundary_partitions = new std::list<double>[m->boundary_count];
-  partition_boundaries(m->boundary_count, transition_vertices, boundary_partitions);
-  calc_half_edges_and_metric(m, boundary_partitions, gamma);
+  std::list<double>* offsets = new std::list<double>[m->boundary_count];
+  partition_boundaries(m->boundary_count, transition_vertices,
+      boundary_partitions, offsets);
+  calc_half_edges_and_metric(m, boundary_partitions, offsets, gamma);
   calc_boundary_permutation(m, boundary_partitions, gamma);
   calc_edge_permutation(m, transition_vertices, boundary_partitions, gamma);
   delete [] boundary_partitions;
+  delete [] offsets;
 }
 
 /* Finds the boundary nearest to each vertex and
@@ -439,8 +442,10 @@ bool compare_graph_vertices(graph_vertex const& gv1, graph_vertex const& gv2)
  * to the edges of the ribbon graph. The function looks for
  * graph_vertices whose opposite vertices change boundaries.
  */
-void partition_boundaries(int boundary_count, std::list<graph_vertex> const* transition_vertices,
-        std::list<double>* boundary_partitions)
+void partition_boundaries(int boundary_count,
+    std::list<graph_vertex> const* transition_vertices,
+    std::list<double>* boundary_partitions,
+    std::list<double>* offsets)
 {
   for (int b=0; b<boundary_count; ++b) {
     std::list<graph_vertex>::const_iterator i;
@@ -452,8 +457,8 @@ void partition_boundaries(int boundary_count, std::list<graph_vertex> const* tra
       if (prev_opp_boundary != curr_opp_boundary) {
         prev_opp_boundary = curr_opp_boundary;
         double offset = calc_optimal_partition_offset((*i).v);
-        double position = (*i).v->shortest_path.position + offset;
-        boundary_partitions[b].push_back(position);
+        boundary_partitions[b].push_back((*i).v->shortest_path.position);
+        offsets[b].push_back(offset);
       }
     }
   }
@@ -465,6 +470,7 @@ void partition_boundaries(int boundary_count, std::list<graph_vertex> const* tra
  */
 void calc_half_edges_and_metric(mesh* m,
     std::list<double> const* boundary_partitions,
+    std::list<double> const* offsets,
     ribbon_graph* gamma)
 {
   gamma->half_edge_count = 0;
@@ -472,10 +478,16 @@ void calc_half_edges_and_metric(mesh* m,
     std::list<double>::const_iterator i = boundary_partitions[b].begin();
     std::list<double>::const_iterator i_prev = boundary_partitions[b].end();
     --i_prev;
+    std::list<double>::const_iterator j = offsets[b].begin();
+    std::list<double>::const_iterator j_prev = offsets[b].end();
+    --j_prev;
     for (; i!=boundary_partitions[b].end(); ++i) {
-      gamma->metric.push_back(normalize_position(m, (*i) - (*i_prev), b));
+      gamma->metric.push_back(normalize_position(m, (*i) - (*i_prev)
+            + (*j) - (*j_prev), b));
       ++(gamma->half_edge_count);
       i_prev = i;
+      j_prev = j;
+      ++j;
     }
   }
 }
