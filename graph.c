@@ -7,6 +7,9 @@
 #include <vector>
 #include <iostream>
 
+#include <gsl/gsl_vector.h>
+#include <gsl/gsl_multimin.h>
+
 #include "coord_double.h"
 #include "comprow_double.h"
 #include "compcol_double.h"
@@ -15,6 +18,7 @@
 #include "cfile_io.h"
 #include "geodesic.h"
 #include "cmesh.h"
+#include "partition.h"
 #include "graph.h"
 
 
@@ -447,7 +451,9 @@ void partition_boundaries(int boundary_count, std::list<graph_vertex> const* tra
       int curr_opp_boundary = (*i).v_opposite->shortest_path.boundary;
       if (prev_opp_boundary != curr_opp_boundary) {
         prev_opp_boundary = curr_opp_boundary;
-        boundary_partitions[b].push_back((*i).v->shortest_path.position);
+        double offset = calc_optimal_partition_offset((*i).v);
+        double position = (*i).v->shortest_path.position + offset;
+        boundary_partitions[b].push_back(position);
       }
     }
   }

@@ -4,7 +4,11 @@
 #include <stdio.h>
 #include <vector>
 #include <list>
-#include <gsl/gsl_multimin>
+#include <math.h>
+
+#include <gsl/gsl_vector.h>
+#include <gsl/gsl_multimin.h>
+
 
 #include "coord_double.h"
 #include "comprow_double.h"
@@ -33,13 +37,14 @@ double calc_optimal_partition_offset(vertex* v)
   calc_vertex_params(v, p);
   my_func.params = (void*)p;
 
-  gsl_multimin_fdfminimizer_type const* T = gsl_multimin_fdfminimizer_conjugate_fr;
+  gsl_multimin_fdfminimizer_type const* T
+    = gsl_multimin_fdfminimizer_conjugate_fr;
   gsl_multimin_fdfminimizer* s = gsl_multimin_fdfminimizer_alloc(T, 2);
   gsl_vector* x = gsl_vector_alloc(2);
   gsl_vector_set(x, 0, 0.0);
   gsl_vector_set(x, 1, 0.0);
 
-  gsl_multimin_fdminimizer_set(s, &my_func, &x, kStepSize, kTol);
+  gsl_multimin_fdfminimizer_set(s, &my_func, x, kStepSize, kTol);
 
   int iter = 0;
   int status;
@@ -61,7 +66,7 @@ double calc_optimal_partition_offset(vertex* v)
   double offset = calc_offset(p[0].length, gsl_vector_get(s->x, 0),
       gsl_vector_get(s->x, 1));
 
-  gsk_multimin_fdminimizer_free(s);
+  gsl_multimin_fdfminimizer_free(s);
   gsl_vector_free(x);
   return offset;
 }
@@ -117,7 +122,7 @@ void my_df(const gsl_vector* v, void* params, gsl_vector* df)
 
 }
 
-void my_fdf(const gsl_vector* v, void* params, double* f gsl_vector* df)
+void my_fdf(const gsl_vector* v, void* params, double* f, gsl_vector* df)
 {
   (*f) = my_f(v, params);
   my_df(v, params, df);
@@ -145,7 +150,8 @@ void calc_dl_dalpha(double const* alphas, double delta,
     vertex_params const* p, double const *d, double* dl_dalpha)
 {
   for (int i=0; i<3; ++i) {
-    dl_dalpha[i] = cosh(p[i].length) * sinh(delta) * sin(alphas[i]) / cosh(d[i]);
+    dl_dalpha[i] = cosh(p[i].length) * sinh(delta) * sin(alphas[i]) 
+      / cosh(d[i]);
   }
 }
 
@@ -153,7 +159,58 @@ void calc_dl_ddelta(double const* alphas, double delta,
     vertex_params const* p, double const* d, double* dl_ddelta)
 {
   for (int i=0; i<3; ++i) {
-    dl_ddelta[i] = (sinh(p[i].length) * sinh(delta) - cosh(p[i].length) * cosh(delta)
+    dl_ddelta[i] = (sinh(p[i].length) * sinh(delta)
+        - cosh(p[i].length) * cosh(delta))
         / cos(alphas[i]);
   }
+}
+
+/* Finds the three shortest geodesics hitting vertex v and 
+ * records their lengths and angles between them where
+ * they intersect the vertex.
+ *
+ * Angles are calculated from the shortest geodesic. So 
+ * alpha[0] is the angle from geodesic 0 to geodesic 1,
+ * alpha[1] is the angle from geodesic 1 to geodesic 2,
+ * alpha[2] is the angle from geodesic 2 to geodesic 0.
+ */
+void calc_vertex_params(vertex const* v, vertex_params* p)
+{
+  geodesic g[3];
+  calc_sort_order(v, g);  // order the 3 shortest geodesics from short to long
+  double theta_0_1 = g[1].angle - g[0].angle;
+  theta_0_1 = normalize_angle(theta_0_1);
+  double theta_0_2 = g[2].angle - g[0].angle;
+  theta_0_2 = normalize_angle(theta_0_2);
+  if (theta_0_1 < theta_0_2) {
+    p[0].length = g[0].length;
+    p[1].length = g[1].length;
+    p[2].length = g[2].length;
+    p[0].angle = theta_0_1;
+    p[1].angle = theta_0_2 - theta_0_1;
+    p[2].angle = 2 * M_PI - theta_0_2;
+  } else {
+    p[0].length = g[0].length;
+    p[1].length = g[2].length;
+    p[2].length = g[1].length;
+    p[0].angle = theta_0_2;
+    p[1].angle = theta_0_1 - theta_0_2;
+    p[2].angle = 2 * M_PI - theta_0_1;
+  }
+
+}
+
+void calc_sort_order(vertex const* v, geodesic* g)
+{
+  std::list<geodesic> copy(v->geodesics);
+  copy.sort();
+  std::list<geodesic>::iterator i = copy.begin();
+  if ((*i).boundary == -1) {
+    i = copy.erase(i);
+  }
+  for (int j=0; j<3; ++j) {
+    g[j] = *i;
+    ++i;
+  }
+
 }
