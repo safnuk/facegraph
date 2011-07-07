@@ -265,10 +265,6 @@ void calc_vertex_config(vertex* v, geodesic const& g, bool on_boundary)
     } else if (g_next.length < g.length / fudge_factor) {
       v->vc.closer_vertices.push_back((vertex*)(v->incident_vertices[i]));
     }
-    // TODO: Remove
-    else {
-      int j=1;
-    }
   }
 
 }

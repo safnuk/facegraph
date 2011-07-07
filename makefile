@@ -1,29 +1,31 @@
 CC = g++
 DEBUG = -ggdb
 CFLAGS = -ansi -pedantic  '-DCOMPLEX=std::complex<double>' \
-	-IIML++ -ISparseLib++/include -ISparseLib++/mv/include
+	-IIML++ -ISparseLib++/include -ISparseLib++/mv/include \
+	-I/usr/local/include
 LFLAGS = -ansi -pedantic  '-DCOMPLEX=std::complex<double>' \
 	SparseLib++/lib/libsparse.a SparseLib++/lib/libspblas.a SparseLib++/lib/libmv.a \
-	-L/usr/local/lib -llbfgs
+	-L/usr/local/lib -llbfgs -lgsl -lgslcblas
 
 HEADERS = \
 	   cricci.h		\
+	   partition.h		\
 	   ccirclepack.h	\
 	   cfile_io.h		\
-		 geodesic.h		\
 	   csimpson.h		\
-		 geodesic.h		\
-		 graph.h		\
+	   geodesic.h		\
+	   graph.h		\
 	   cmesh.h
 
 OBJS =  \
 	   cmain.o		\
+	   partition.o		\
 	   cricci.o		\
 	   ccirclepack.o	\
 	   cfile_io.o		\
 	   csimpson.o		\
-		 graph.o		\
-		 geodesic.o		\
+	   graph.o		\
+	   geodesic.o		\
 	   cmesh.o
 
 main : $(OBJS)
@@ -31,6 +33,9 @@ main : $(OBJS)
 
 cmain.o : cmain.c $(HEADERS)
 	$(CC) $(DEBUG) $(CFLAGS) -c cmain.c
+
+partition.o : partition.c $(HEADERS)
+	$(CC) $(DEBUG) $(CFLAGS) -c partition.c
 
 cricci.o : cricci.c $(HEADERS)
 	$(CC) $(DEBUG) $(CFLAGS) -c cricci.c
