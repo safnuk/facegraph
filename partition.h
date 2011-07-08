@@ -8,7 +8,7 @@ struct vertex_params {
 };
 
 double calc_optimal_partition_offset(vertex* v);
-double calc_offset(double length, double alpha, double delta);
+double calc_offset(double l, double alpha, double delta);
 double my_f(const gsl_vector* v, void* params);
 void my_df(const gsl_vector* v, void* params, gsl_vector* df);
 void my_fdf(const gsl_vector* v, void* params, double* f, gsl_vector* df);

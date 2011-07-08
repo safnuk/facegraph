@@ -484,6 +484,8 @@ void calc_half_edges_and_metric(mesh* m,
     for (; i!=boundary_partitions[b].end(); ++i) {
       gamma->metric.push_back(normalize_position(m, (*i) - (*i_prev)
             + (*j) - (*j_prev), b));
+      printf("%i: %.10f + %.10f  %f\n", gamma->half_edge_count, (*i), (*j),
+          normalize_position(m, (*i) - (*i_prev), b));
       ++(gamma->half_edge_count);
       i_prev = i;
       j_prev = j;

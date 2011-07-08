@@ -29,7 +29,7 @@ OBJS =  \
 	   cmesh.o
 
 main : $(OBJS)
-	$(CC) $(DEBUG) $(LFLAGS) $(OBJS) -o main -lm
+	$(CC) $(DEBUG) $(LFLAGS) $(OBJS) -o main
 
 cmain.o : cmain.c $(HEADERS)
 	$(CC) $(DEBUG) $(CFLAGS) -c cmain.c

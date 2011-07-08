@@ -39,7 +39,7 @@ double calc_optimal_partition_offset(vertex* v)
   my_func.params = (void*)p;
 
   gsl_multimin_fdfminimizer_type const* T
-    = gsl_multimin_fdfminimizer_conjugate_fr;
+    = gsl_multimin_fdfminimizer_vector_bfgs2;
   gsl_multimin_fdfminimizer* s = gsl_multimin_fdfminimizer_alloc(T, 2);
   gsl_vector* x = gsl_vector_alloc(2);
   gsl_vector_set(x, 0, 0.0);
@@ -55,25 +55,33 @@ double calc_optimal_partition_offset(vertex* v)
 
     if (status) break;
     status = gsl_multimin_test_gradient(s->gradient, kErrTol);
-    if (status == GSL_SUCCESS) {
-      printf("%5d %.12f %.12f %10.5f\n", iter, 
-          gsl_vector_get(s->x, 0),
-          gsl_vector_get(s->x, 1),
-          s->f);
-    }
   } while (status == GSL_CONTINUE && iter < kMaxIterations);
 
   double offset = calc_offset(p[0].length, gsl_vector_get(s->x, 0),
       gsl_vector_get(s->x, 1));
-
+  double o1, o2;
+  o1 = calc_offset(p[1].length, gsl_vector_get(s->x, 0) + p[1].angle + p[2].angle,
+      gsl_vector_get(s->x, 1));
+  o2 = calc_offset(p[2].length, gsl_vector_get(s->x, 0) + p[2].angle,
+      gsl_vector_get(s->x, 1));
+  printf("Offsets: %f, %f, %f\n", offset, o1, o2);
   gsl_multimin_fdfminimizer_free(s);
   gsl_vector_free(x);
   return offset;
 }
 
-double calc_offset(double l, double alpha, double d)
+double calc_offset(double l, double alpha, double delta)
 {
-  double a = normalize_angle(alpha);
+  double a;
+  double d;
+  if (delta < 0) {
+    d = -1 * delta;
+    a = M_PI - alpha;
+  } else {
+    d = delta;
+    a = alpha;
+  }
+  a = normalize_angle(alpha);
   double sign = 1.0;
   if (a > M_PI) {
     sign = -1;
@@ -178,11 +186,12 @@ void calc_vertex_params(vertex const* v, vertex_params* p)
 {
   geodesic g[3];
   calc_sort_order(v, g);  // order the 3 shortest geodesics from short to long
-  double theta_0_1 = g[1].angle - g[0].angle;
+  double theta_0_1 = g[0].angle - g[1].angle;
   theta_0_1 = normalize_angle(theta_0_1);
-  double theta_0_2 = g[2].angle - g[0].angle;
+  double theta_0_2 = g[0].angle - g[2].angle;
   theta_0_2 = normalize_angle(theta_0_2);
   if (theta_0_1 < theta_0_2) {
+    printf("B%i, B%i, B%i\n", g[0].boundary, g[1].boundary, g[2].boundary);
     p[0].length = g[0].length;
     p[1].length = g[1].length;
     p[2].length = g[2].length;
@@ -190,6 +199,7 @@ void calc_vertex_params(vertex const* v, vertex_params* p)
     p[1].angle = theta_0_2 - theta_0_1;
     p[2].angle = 2 * M_PI - theta_0_2;
   } else {
+    printf("B%i, B%i, B%i\n", g[0].boundary, g[2].boundary, g[1].boundary);
     p[0].length = g[0].length;
     p[1].length = g[2].length;
     p[2].length = g[1].length;
