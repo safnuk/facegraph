@@ -1,7 +1,7 @@
 // graph.h
 const int kVertexActive = 1;
 const int kVertexNotActive = 0;
-const double kErrorThreshold = 1e-6;
+const double kErrorThreshold = 1e-9;
 
 /* Struct used to store information relevant
  * for vertices of the mesh which are adjacent to

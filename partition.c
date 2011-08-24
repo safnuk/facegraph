@@ -64,7 +64,8 @@ double calc_optimal_partition_offset(vertex* v)
       gsl_vector_get(s->x, 1));
   o2 = calc_offset(p[2].length, gsl_vector_get(s->x, 0) + p[2].angle,
       gsl_vector_get(s->x, 1));
-  printf("Offsets: %f, %f, %f\n", offset, o1, o2);
+  printf("Positions: %f, %f, %f\n", p[0].position + offset, p[1].position + o1, 
+      p[2].position + o2);
   gsl_multimin_fdfminimizer_free(s);
   gsl_vector_free(x);
   return offset;
@@ -195,6 +196,9 @@ void calc_vertex_params(vertex const* v, vertex_params* p)
     p[0].length = g[0].length;
     p[1].length = g[1].length;
     p[2].length = g[2].length;
+    p[0].position = g[0].position;
+    p[1].position = g[1].position;
+    p[2].position = g[2].position;
     p[0].angle = theta_0_1;
     p[1].angle = theta_0_2 - theta_0_1;
     p[2].angle = 2 * M_PI - theta_0_2;
@@ -203,6 +207,9 @@ void calc_vertex_params(vertex const* v, vertex_params* p)
     p[0].length = g[0].length;
     p[1].length = g[2].length;
     p[2].length = g[1].length;
+    p[0].position = g[0].position;
+    p[1].position = g[2].position;
+    p[2].position = g[1].position;
     p[0].angle = theta_0_2;
     p[1].angle = theta_0_1 - theta_0_2;
     p[2].angle = 2 * M_PI - theta_0_1;

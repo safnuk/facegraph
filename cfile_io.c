@@ -56,10 +56,13 @@ int read(char *filename, filedata* data)
 void save_mesh(char *filename, void *data)
 {
   FILE *fp;
+  FILE *fp2;
   int i, j;
   double r, s;
   int k[3];
   fp = fopen(filename, "w");
+  fp2 = fopen("vertices.txt", "w");
+
   vertex *v;
   edge *e;
   mesh *m = (mesh *) data;
@@ -67,12 +70,30 @@ void save_mesh(char *filename, void *data)
     printf("Can't open file!\n");
     exit(1);
   }
+  fprintf(fp2, "# Boundary reference points:\n");
+  for (i=0; i<m->boundary_count; i++) {
+    fprintf(fp2, "[%i %i] ", i, 
+        (*(m->boundary_cycles[i].begin()))->vertices[0]->index);
+  }
+  fprintf(fp2, "\n");
+  fprintf(fp2, "# Vertex [b0 data] ... [b4 data]\n");
+  fprintf(fp2, "# Where boundary data is [boundary, starting pt, length, angle]\n");
+  fprintf(fp2, "# Starting pt is the distance from the boundary reference vertex,\n");
+  fprintf(fp2, "# Angle is the counterclockwise rotation from the geodesic to \n");
+  fprintf(fp2, "# the reference edge.\n");
+
   for (i=0; i < m->ranks[0]; i++) {
     s = m->vertices[i].s;
     r = log((1 + s) / (1 - s));
     fprintf(fp, "Vertex %i %f %f %f %.12f %i\n", i, m->coordinates[i].x,
              m->coordinates[i].y, m->coordinates[i].z, r,
              m->vertices[i].shortest_path.boundary);
+    fprintf(fp2, "%i ", i);
+    for (j=0; j<m->boundary_count; ++j) {
+      geodesic g = m->vertices[i].shortest_paths[j];
+      fprintf(fp2, "[%i %f %f %f] ", g.boundary, g.position, g.length, g.angle);
+    }
+    fprintf(fp2, "\n");
   }
   for (i=0; i < m->ranks[2]; i++) {
     for (j=0; j<3; j++) {
@@ -96,6 +117,7 @@ void save_mesh(char *filename, void *data)
           acosh(e->cosh_length) );
   }
   fclose(fp);
+  fclose(fp2);
 }
 /* Allocate a new point and add to tail of linked list.
  */

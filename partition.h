@@ -5,6 +5,7 @@ struct vertex;
 struct vertex_params {
   double angle;
   double length;
+  double position;
 };
 
 double calc_optimal_partition_offset(vertex* v);
