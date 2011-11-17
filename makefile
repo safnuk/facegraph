@@ -10,6 +10,7 @@ LFLAGS = -ansi -pedantic  '-DCOMPLEX=std::complex<double>' \
 HEADERS = \
 	   cricci.h		\
 	   partition.h		\
+	   mesh_improver.h	\
 	   ccirclepack.h	\
 	   cfile_io.h		\
 	   csimpson.h		\
@@ -21,6 +22,7 @@ OBJS =  \
 	   cmain.o		\
 	   partition.o		\
 	   cricci.o		\
+	   mesh_improver.o	\
 	   ccirclepack.o	\
 	   cfile_io.o		\
 	   csimpson.o		\
@@ -39,6 +41,9 @@ partition.o : partition.c $(HEADERS)
 
 cricci.o : cricci.c $(HEADERS)
 	$(CC) $(DEBUG) $(CFLAGS) -c cricci.c
+
+mesh_improver.o : mesh_improver.c $(HEADERS)
+	$(CC) $(DEBUG) $(CFLAGS) -c mesh_improver.c
 
 ccirclepack.o : ccirclepack.c $(HEADERS)
 	$(CC) $(DEBUG) $(CFLAGS) -c ccirclepack.c

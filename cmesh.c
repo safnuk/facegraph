@@ -1,5 +1,7 @@
 // cmesh.c
 
+#define DEBUG_MODE 1
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -34,26 +36,223 @@ int initialize_mesh(mesh *m, filedata *fd)
   int edge_count = 0;
   m->ranks[0] = fd->number_of_points;
   m->ranks[2] = fd->number_of_triangles;
-  m->vertices = new vertex[m->ranks[0]];
-  m->edges = (edge*) malloc(max_number_of_edges * sizeof(edge));
-  m->triangles = (triangle*) malloc(m->ranks[2] * sizeof(triangle));
-  m->coordinates = (point*)malloc(m->ranks[0] * sizeof(point));
+  m->vertices = new vertex[2* m->ranks[0]];
+  m->edges = (edge*) malloc(2*max_number_of_edges * sizeof(edge));
+  m->triangles = (triangle*) malloc(2*m->ranks[2] * sizeof(triangle));
+  m->coordinates = (point*)malloc(2*m->ranks[0] * sizeof(point));
   if (!valid_pointers(m)) {
     printf("Memory allocation failure!\n Goodbye.\n");
     deallocate_mesh(m);
     exit;
   }
-  copy_points(fd->point_head, m);
-  construct_triangles(fd->face_head, m);
-  edge_count = construct_edges(m);
-  m->ranks[1] = edge_count;
-  add_indices(m);
+  construct_simplices(m, fd);
+  fix_bivalent_vertices(m, fd);
+  remove_isolated_vertices(m, fd);
   sort_cyclic_order_at_vertices(m);
   add_link_edges(m);
   m->f = 0;
   calc_boundaries(m);
   construct_vertex_hessian_pointers(m);
   construct_vertex_inner_angle_pointers(m);
+}
+
+void construct_simplices(mesh *m, filedata* fd)
+{
+  copy_points(fd->point_head, m);
+  construct_triangles(fd->face_head, m);
+  m->ranks[0] = fd->number_of_points;
+  m->ranks[2] = fd->number_of_triangles;
+  m->ranks[1] =  construct_edges(m);
+  add_indices(m);
+}
+
+/* Looks for all triangles with bivalent vertices.
+ * These triangles have their edges bisected and replaced
+ * with three smaller triangles (the tip with the bivalent
+ * vertex is removed). The adjacent triangle is cut 
+ * into two smaller triangles.
+ */
+void fix_bivalent_vertices(mesh* m, filedata* fd)
+{
+  int old_boundary_triangle[3];
+  int old_interior_triangle[3];
+  int new_middle_points[3];
+  int* triangles_to_keep = new int[m->ranks[2]];
+  for (int i=0; i<m->ranks[2]; ++i) {
+    triangles_to_keep[i] = 1;
+  }
+  face* face_head = (face*)malloc(sizeof(face));
+  face_head->next = NULL;
+  face* face_node = face_head;
+  for (int i=0; i<m->ranks[0]; ++i) {
+    if (m->vertices[i].degree == 2) {
+      vertex* v = &(m->vertices[i]);
+      triangle* t = v->incident_triangles[0];
+      int k = get_vertex_position_in_triangle(v, t);
+      triangle* boundary_triangle = t;
+      triangle* interior_triangle = get_other_incident_triangle(t->edges[k], t);
+      triangles_to_keep[boundary_triangle->index] = 0;
+      triangles_to_keep[interior_triangle->index] = 0;
+      list_triangle_vertices(boundary_triangle, old_boundary_triangle, ((k+1)%3));
+      v = t->vertices[(k+1)%3];
+      int k2 = get_vertex_position_in_triangle(v, interior_triangle);
+      list_triangle_vertices(interior_triangle, old_interior_triangle, k2);
+      construct_edge_bisectors(m, fd, t, new_middle_points, k);
+      face_node = add_new_triangles(face_node, old_boundary_triangle, 
+          old_interior_triangle, new_middle_points);
+    }
+  }
+  construct_new_triangle_list(fd, face_head, triangles_to_keep);
+  construct_simplices(m, fd);
+  delete [] triangles_to_keep;
+
+}
+
+/* Assuming that triangle t is adjacent to edge e, function
+ * returns the other triangle adjacent to e. If triangle t
+ * is not adjacent to edge e, function fails badly.
+ */
+triangle* get_other_incident_triangle(edge* e, triangle* t)
+{
+  if (e->incident_triangles[0] == t) {
+    return e->incident_triangles[1];
+  }
+  else if (e->incident_triangles[1] == t){
+    return e->incident_triangles[0];
+  } else {
+    printf("Triangle not adjacent to edge in get_other_incident_triangle.\n");
+    exit(1);
+  }
+}
+
+/* Assuming that triangle t is comprised of vertices v0, v1, v2
+ * (with indices i0, i1, i2), function stores the indices in array
+ * vertices. The first vertex stored is specified by variable offset.
+ */
+void list_triangle_vertices(triangle* t, int* vertices, int offset)
+{
+  for (int i=0; i<3; ++i) {
+    vertices[i] = t->vertices[(i+offset)%3]->index;
+  }
+}
+
+/* The three edges of triangle t are bisected. Resulting midpoints are added
+ * to the end of the list of vertices in fd, with the resulting indices stored
+ * in array vertices. Variable offset is used to specify the position of the
+ * bivalent vertex in triangle t.
+ */
+void construct_edge_bisectors(mesh* m, filedata* fd, triangle* t, int* vertices, int offset)
+{
+  _point* point_node = fd->point_head;
+  while (point_node->next != NULL) {
+    point_node = point_node->next;
+  }
+  for (int i=0; i<3; ++i) {
+    edge* e = t->edges[(i+offset)%3];
+    int j0 = e->vertices[0]->index;
+    int j1 = e->vertices[1]->index;
+    double x = (m->coordinates[j0].x + m->coordinates[j1].x) / 2;
+    double y = (m->coordinates[j0].y + m->coordinates[j1].y) / 2;
+    double z = (m->coordinates[j0].z + m->coordinates[j1].z) / 2;
+    vertices[i] = fd->number_of_points;
+    point_node = add_point_node(point_node, x, y, z);
+    ++(fd->number_of_points);
+  }
+}
+
+/* Assuming that a triangle with bivalent vertex is properly bisected,
+ * functions constructs 5 new triangles that subdivide the bivalent triangle
+ * and its adjacent triangle.
+ */
+face* add_new_triangles(face* face_node, int* t1, int* t2, int* t3)
+{
+  face_node = add_face_node(face_node, t1[0], t3[0], t3[2]);
+  face_node = add_face_node(face_node, t3[0], t3[1], t3[2]);
+  face_node = add_face_node(face_node, t3[0], t1[1], t3[1]);
+  face_node = add_face_node(face_node, t2[0], t2[1], t3[0]);
+  face_node = add_face_node(face_node, t3[0], t2[1], t2[2]);
+  return face_node;
+}
+
+/* Function which constructs a new triangle list for fd by taking
+ * all newly created triangles from the subdivision process and adding on all
+ * the preexisitng triangles that were not subdivided.
+ */
+void construct_new_triangle_list(filedata* fd, face* face_head, int* triangles_to_keep)
+{
+  int count = 0;
+  face* face_node = face_head;
+  while(face_node->next != NULL) {
+    ++count;
+    face_node = face_node->next;
+  }
+  face* old_face_node = fd->face_head;
+  bool delete_prior_node = true;
+  for (int i=0; i<fd->number_of_triangles; ++i) {
+    face* prior_face_node = old_face_node;
+    old_face_node = old_face_node->next;
+    if (delete_prior_node) {
+      free(prior_face_node);
+    }
+    if (triangles_to_keep[i]) {
+      delete_prior_node = false;
+      face_node->next = old_face_node;
+      face_node = face_node->next;
+      ++count;
+    } else {
+      delete_prior_node = true;
+    }
+  }
+  if (delete_prior_node) {
+    free(old_face_node);
+  }
+  face_node->next = NULL;
+  fd->number_of_triangles = count;
+  fd->face_head = face_head;
+}
+
+/* Function which removes all the isolated vertices from
+ * fd, and then reconstructs the mesh.
+ */
+void remove_isolated_vertices(mesh* m, filedata* fd)
+{
+  _point* point_node = fd->point_head;
+  _point* prior_point_node = point_node;
+  int* vertex_mapping = new int[m->ranks[0]];
+  int keep_count = 0; 
+  for (int i=0; i<m->ranks[0]; ++i) {
+    point_node = prior_point_node->next;
+    vertex* v = &(m->vertices[i]);
+    if (v->degree == 0) {
+      vertex_mapping[i] = -1;
+      prior_point_node->next = point_node->next;
+      free(point_node);
+      point_node = prior_point_node;
+    } else {
+      vertex_mapping[i] = keep_count;
+      ++keep_count;
+      prior_point_node = point_node;
+    }
+  }
+  fd->number_of_points = keep_count;
+  remap_triangle_vertices(fd, vertex_mapping);
+  construct_simplices(m, fd);
+  delete [] vertex_mapping;
+}
+
+void remap_triangle_vertices(filedata* fd, int* vertex_mapping)
+{
+  face* face_node = fd->face_head->next;
+  while (face_node != NULL) {
+    for (int i=0; i<3; ++i) {
+      face_node->v[i] = vertex_mapping[face_node->v[i]];
+      if (face_node->v[i] == -1) {
+        printf("Reference to isolated vertex in remap_triangle_vertices.\n");
+        exit(1);
+      }
+    }
+    face_node = face_node->next;
+  }
 }
 
 void double_mesh(mesh *m, mesh *m_double)
@@ -664,6 +863,11 @@ void calc_inner_angles(mesh *m)
       t->inner_angles[j] = acos(cos_angle);
       t->cos_angles[j] = cos_angle;
       t->sin_angles[j] = sin(t->inner_angles[j]);
+#ifdef DEBUG_MODE
+      if (!is_number(cos_angle) || !is_number(t->inner_angles[j]) || !is_number(t->sin_angles[j])) {
+        printf("NaN found in calc_inner_angles.\n");
+      }
+#endif
     }
   }
 }
@@ -709,7 +913,15 @@ void calc_edge_length (edge *e)
   } else {
     e->cosh_length = ((1 + aa)*(1 + bb) - 4*a*b*c) / 
       ((1 - aa)*(1 - bb));
+    if (e->cosh_length == 1.0) {
+      printf("0 length edge found.\n");
+    }
     e->sinh_length = sqrt(e->cosh_length * e->cosh_length - 1);
+#ifdef DEBUG_MODE
+    if ((!is_number(e->cosh_length)) || (!is_number(e->sinh_length))) {
+      printf("NaN found in calc_edge_length.\n");
+    }
+#endif
   }
 }
 
@@ -871,6 +1083,11 @@ void calc_dl_ds(triangle *t, double A[3][3])
              ((1 - s[j]*s[j]) * (1 - s[k]*s[k]));
       d2 = 2 * s[j] * cosh_l[i] / (1 - s[j]*s[j]);
       A[i][j] = (d1 + d2) / sinh_l[i]; 
+#ifdef DEBUG_MODE
+      if (!is_number(d1) || !is_number(d2) || !is_number(A[i][j])) {
+        printf("NaN found in calc_dl_ds.\n");
+      }
+#endif
     }
   }
 }
@@ -1114,4 +1331,12 @@ void print_triangle(triangle *t)
   }
   printf("(T%i)  V:[%i, %i, %i]", t->index, v[0], v[1], v[2]);
   printf(" E:[%i, %i, %i]\n", e[0], e[1], e[2]);
+}
+
+/* Function should return true is x is a (possibly infinite)
+ * floating point number, return false if it a nan.
+ */
+bool is_number(double x)
+{
+  return (x == x);
 }

@@ -124,6 +124,7 @@ typedef struct {
  *      - improvable trivalent and quadvalent vertices
  */
 typedef struct {
+        filedata* fd;
         double f;
         int ranks[3];  // ranks of i-th chain groups
         int boundary_count;
@@ -139,6 +140,17 @@ typedef struct {
 } mesh;
 
 int initialize_mesh(mesh *m, filedata *fd);
+void construct_simplices(mesh *m, filedata* fd);
+void fix_bivalent_vertices(mesh* m, filedata* fd);
+void remove_isolated_vertices(mesh* m, filedata* fd);
+void remap_triangle_vertices(filedata* fd, int* vertex_mapping);
+triangle* get_other_incident_triangle(edge* e, triangle* t);
+void list_triangle_vertices(triangle* t, int* vertices, int offset);
+void construct_edge_bisectors(mesh* m, filedata* fd,
+                              triangle* t, int* vertices, int offset);
+face* add_new_triangles(face* face_node, int* t1, int* t2, int* t3);
+void construct_new_triangle_list(filedata* fd, face* face_head,
+                                 int* triangles_to_keep);
 void double_mesh(mesh *m, mesh *m_double);
 void split_doubled_mesh(mesh *m, mesh *m_double);
 void deallocate_mesh(mesh *m);
@@ -197,3 +209,5 @@ void print_coordinate(point *p);
 void print_vertex(vertex *v);
 void print_edge(edge *e);
 void print_triangle(triangle *t);
+
+bool is_number(double x);

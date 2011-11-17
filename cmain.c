@@ -12,6 +12,7 @@
 #include "cfile_io.h"
 #include "geodesic.h"
 #include "cmesh.h"
+#include "mesh_improver.h"
 #include "ccirclepack.h"
 #include "cricci.h"
 #include "graph.h"
@@ -28,8 +29,11 @@ int main(int argc, char *argv[])
   initialize_filedata(&data);
   read(argv[1], &data);
   initialize_mesh(&m, &data);
-  deallocate_filedata(&data);
   calc_circlepack_metric(&m);
+  int count = 0;
+  while (find_problem_vertices(&m, &data) && (count < 4)) {
+    ++count;
+  }
   run_ricci_flow(&m);
   calc_boundary_lengths(&m);
   for (int i=0; i<m.boundary_count; ++i) {
@@ -41,5 +45,7 @@ int main(int argc, char *argv[])
   if (argc == 3) {
     save_mesh(argv[2], (void *) &m);
   }
+
+  deallocate_filedata(&data);
   deallocate_mesh(&m);
 }
