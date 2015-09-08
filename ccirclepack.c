@@ -170,13 +170,13 @@ void calc_circle_angles(optimizer *opt)
     r1 = opt->r[vi1];
     l_bar = opt->ambient_lengths[i];
     if (l_bar >= r0 + r1) { // circles are tangent
-      e->cosh_length = cosh(r0 + r1);
+      e->cosh_length_minus1 = cosh(r0 + r1) - 1.0;
       e->cos_angle = -1;
     } else if (cosh(l_bar) <= cosh(r0) * cosh(r1)) { // maximum allowed overlap
-      e->cosh_length = cosh(r0) * cosh(r1);
+      e->cosh_length_minus1 = cosh(r0) * cosh(r1) - 1.0;
       e->cos_angle = 0; // angle = pi / 2
     } else { // arbitrary obtuse angle (no error)
-      e->cosh_length = cosh(l_bar);
+      e->cosh_length_minus1 = cosh(l_bar) - 1.0;
       tmp = sinh(r0) * sinh(r1);
       if (tmp != 0.0) {
         e->cos_angle = 

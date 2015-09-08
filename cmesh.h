@@ -59,12 +59,15 @@ struct vertex {
  *
  * cosh_length stores the hyp cosine of the length of the edge,
  * computed using the circle packing metric.
+ *
+ * Using cosh_length - 1 to avoid precision errors with very
+ * small radii.
  */
 struct edge {
         vertex* vertices[2];
         triangle* incident_triangles[2];
         double cos_angle;
-        double cosh_length;
+        double cosh_length_minus1;
         double sinh_length;
         int index;
 };
@@ -179,6 +182,7 @@ void construct_vertex_inner_angle_pointers(mesh *m);
 int get_vertex_position_in_triangle(vertex *v, triangle *t);
 int get_edge_position_at_vertex(edge* e, vertex* v);
 bool edges_share_triangle(edge* e1, edge* e2);
+vertex* get_other_vertex(edge* e, vertex* v);
 point* get_coordinate(mesh *m, vertex *v);
 
 double calc_distance(point *p1, point *p2);
@@ -189,10 +193,32 @@ void calc_inner_angles(mesh *m);
 double calc_curvature(vertex *v);
 double curvature_integrand(double s, void *instance);
 void calc_edge_lengths(mesh *m);
-void calc_edge_length (edge *e);
+double calc_edge_length (edge *e);
 double min(double *x, int n);
 double max(double *x, int n);
 void calc_boundary_lengths(mesh* m);
+
+void collapse_short_edges(mesh* m);
+void add_wings_to_bivalent_vertices(mesh* m, int** edge_incidences, 
+    double** edge_angles);
+void get_boundary_adjacent_vertices(vertex* v, int* vi);
+void add_pi_edge(int** ei, double** ea, int v0, int v1);
+void clear_boundary_data(mesh* m);
+void initialize_double_arrays_of_edges(int*** ei, double*** ea, 
+                                          int*** im, int n);
+void deallocate_double_arrays_of_edges(int** ei, double** ea, 
+                                       int** im, int n);
+void record_edge_angles(mesh* m, int** ei, double** ea);
+void record_vertex_radii(mesh* m, double* s);
+void construct_vertex_equivalence_relation(mesh* m, int* vertex_map);
+void construct_inverse_vertex_map(mesh* m, int* vertex_map, int** inverse_map);
+int count_collapsed_edges(triangle* t);
+void remap_collapsed_triangles(mesh* m, int* vertex_map);
+void copy_radii_and_angle_data(mesh* m, int** inverse_map, 
+    double* s, int** edge_incidences, double** edge_angles);
+double find_inverse_edge_angle(int i0, int i1, int** inverse_map,
+    int** ei, double** ea);
+int find_old_edge_position(int** ei, int k0, int k1);
 
 void clear_geodesic_lists(mesh* m);
 

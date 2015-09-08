@@ -4,6 +4,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <math.h>
 #include <vector>
 #include <list>
@@ -30,8 +31,11 @@ int read(char *filename, filedata* data)
   int face_count = 0;
   _point *point_node = data->point_head;
   face *face_node = data->face_head;
+  char file1[150];
+  strcpy(file1, filename);
+  strcat(file1, ".mesh");
 
-  fp = fopen(filename, "r");
+  fp = fopen(file1, "r");
   if (fp == NULL) {
     printf("Can't open file!\n");
     exit(1);
@@ -60,8 +64,15 @@ void save_mesh(char *filename, void *data)
   int i, j;
   double r, s;
   int k[3];
-  fp = fopen(filename, "w");
-  fp2 = fopen("vertices.txt", "w");
+  char file1[150];
+  char file2[150];
+  strcpy(file1, filename);
+  strcpy(file2, filename);
+  strcat(file1, "-out.mesh");
+  strcat(file2, "-out.txt");
+
+  fp = fopen(file1, "w");
+  fp2 = fopen(file2, "w");
 
   vertex *v;
   edge *e;
@@ -114,7 +125,7 @@ void save_mesh(char *filename, void *data)
       k[1] = k[2];
     }
     fprintf(fp, "Edge %i %i %.12f %.12f\n", k[0], k[1], acos(e->cos_angle),
-          acosh(e->cosh_length) );
+          acosh(1.0 + e->cosh_length_minus1) );
   }
   fclose(fp);
   fclose(fp2);

@@ -22,8 +22,8 @@ int main(int argc, char *argv[])
   filedata data;
   mesh m;
   ribbon_graph gamma;
-  if ( argc < 2 ) {
-    printf( "usage: %s in_filename [out_filename]\n", argv[0] );
+  if ( argc != 2 ) {
+    printf( "usage: %s in_filename\n", argv[0] );
     return 0;
   }
   initialize_filedata(&data);
@@ -34,6 +34,8 @@ int main(int argc, char *argv[])
   while (find_problem_vertices(&m, &data) && (count < 4)) {
     ++count;
   }
+  calc_circlepack_metric(&m);  // shouldn't be necessary, but
+                               // data is lost in find_problem_vertices
   run_ricci_flow(&m);
   calc_boundary_lengths(&m);
   for (int i=0; i<m.boundary_count; ++i) {
@@ -42,9 +44,7 @@ int main(int argc, char *argv[])
   printf("\n");
   calc_cutlocus_graph(&m, &gamma);
   print_ribbon_graph(&gamma);
-  if (argc == 3) {
-    save_mesh(argv[2], (void *) &m);
-  }
+  save_mesh(argv[1], (void *) &m);
 
   deallocate_filedata(&data);
   deallocate_mesh(&m);

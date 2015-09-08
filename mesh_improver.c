@@ -50,7 +50,7 @@ int find_problem_vertices(mesh* m, filedata* fd)
         angle_sum += acos(v->link_edges[j]->cos_angle);
       }
       angle_sum *= 1 + v->boundary;
-      if ((angle_sum <= 2*M_PI) && (!vertex_hit_list[v->index])) {
+      if ((angle_sum <= 2*M_PI + 0.2) && (!vertex_hit_list[v->index])) {
         ++trouble_count;
         list_incident_vertices(v, incident_points, vertex_hit_list);
         trivalent_point = v->index;
@@ -79,9 +79,6 @@ int find_problem_vertices(mesh* m, filedata* fd)
  * Also records these vertices in vertex_hit_list, as after
  * the subdivision they will have an additional incident edge
  * (and hence no longer be a problem vertex if they were before).
- *
- * The one exception is the first vertex on the boundary, which
- * will not receive an additional edge.
  */
 void list_incident_vertices(vertex* v, int* incident_points, 
     int* vertex_hit_list)
@@ -90,9 +87,6 @@ void list_incident_vertices(vertex* v, int* incident_points,
     vertex* v2 = v->incident_vertices[i];
     incident_points[i] = v2->index;
     vertex_hit_list[v2->index] = 1;
-    if (v->boundary && !i) {
-      vertex_hit_list[v2->index] = 0;
-    }
   }
 }
 

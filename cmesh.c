@@ -8,6 +8,7 @@
 #include <vector>
 #include <list>
 #include <iostream>
+#include <lbfgs.h>
 
 #include "coord_double.h"
 #include "comprow_double.h"
@@ -18,8 +19,11 @@
 #include "geodesic.h"
 #include "csimpson.h"
 #include "cmesh.h"
+#include "mesh_improver.h"
+#include "ccirclepack.h"
 
-
+const double edge_length_threshold = 1e-15;
+const double radii_threshold = 1e-12;
 
 /* Given a filedata structure (read from a .mesh file), 
  * the function calculates all incidence 
@@ -31,6 +35,7 @@
  */
 int initialize_mesh(mesh *m, filedata *fd)
 {
+  m->fd = fd;
   int max_number_of_edges = fd->number_of_points +
     fd->number_of_triangles + 10; 
   int edge_count = 0;
@@ -318,12 +323,16 @@ void split_doubled_mesh(mesh *m, mesh *m_double)
   }
   for (i=0; i < m->ranks[1]; i++) {
     m->edges[i].cos_angle = m_double->edges[i].cos_angle;
-    m->edges[i].cosh_length = m_double->edges[i].cosh_length;
+    m->edges[i].cosh_length_minus1 = m_double->edges[i].cosh_length_minus1;
     m->edges[i].sinh_length = m_double->edges[i].sinh_length;
   }
 }
 /* Free memory allocated in a previously initialized mesh. */
 void deallocate_mesh(mesh *m) {
+  for (int i=0; i<m->boundary_count; ++i) {
+    m->boundary_cycles[i].clear();
+  }
+  m->boundary_count=0;
   delete [] m->vertices;
   free(m->edges);
   free(m->triangles);
@@ -604,6 +613,19 @@ int get_vertex_position_in_triangle(vertex *v, triangle *t)
 }
 
 
+/* Assuming that vertex v is incident to edge e,
+ * functin returns a pointer to the other vertex
+ * incident to e.
+ *
+ * Exits rudely if the vertex is not incident.
+ */
+vertex* get_other_vertex(edge* e, vertex* v)
+{
+  if (e->vertices[0] == v) return e->vertices[1];
+  if (e->vertices[1] == v) return e->vertices[0];
+  printf("Vertex is not incident to edge - error in get_other_vertex.\n");
+  exit(1);
+}
 /* Assuming that edge e is incident to vertex v, function
  * returns the index of the edge within v->incident_edges.
  *
@@ -853,13 +875,16 @@ void calc_inner_angles(mesh *m)
   for(i=0; i < m->ranks[2]; i++) {
     t = &(m->triangles[i]);
     for (j=0; j<3; j++) {
-      cl[j] = ((edge *)(t->edges[j]))->cosh_length;  
+      cl[j] = ((edge *)(t->edges[j]))->cosh_length_minus1;  
       sq[j] = cl[j] * cl[j];
     }
     for (j=0; j<3; j++) {
-      cos_angle = cl[(j+2)%3] * cl[(j+1)%3] - cl[j];
-      cos_angle = cos_angle / sqrt((sq[(j+2)%3] - 1) 
-          * (sq[(j+1)%3] - 1));
+      cos_angle = cl[(j+2)%3] + cl[(j+1)%3] + cl[(j+2)%3] * cl[(j+1)%3] - cl[j];
+      cos_angle = cos_angle / sqrt((2 * cl[(j+2)%3] + sq[(j+2)%3]) 
+          * (2 * cl[(j+1)%3] + sq[(j+1)%3]));
+      if (cos_angle > 1.0) {
+        cos_angle = 1.0;  // Protect against rounding errors.
+      }
       t->inner_angles[j] = acos(cos_angle);
       t->cos_angles[j] = cos_angle;
       t->sin_angles[j] = sin(t->inner_angles[j]);
@@ -894,11 +919,23 @@ double calc_curvature(vertex *v)
 void calc_edge_lengths(mesh *m) 
 {
   int i;
+  double min_length = 100;
   for (i=0; i < m->ranks[1]; i++) {
-    calc_edge_length(&(m->edges[i]));
+    double length = calc_edge_length(&(m->edges[i]));
+    if (min_length > length) {
+      min_length = length;
+    }
+#ifdef DEBUG_MODE
+    if (length < edge_length_threshold) {
+      printf("Short edge detected.\n");
+    }
+#endif
+  }
+  if (min_length < edge_length_threshold) {
+    // throw min_length;
   }
 }
-void calc_edge_length (edge *e)
+double calc_edge_length (edge *e)
 {
   double a, b, c, aa, bb;
   a = ((vertex *)(e->vertices[0]))->s;
@@ -906,23 +943,16 @@ void calc_edge_length (edge *e)
   c = e->cos_angle;
   aa = a * a;
   bb = b * b;
-  if ((aa >= 1.0) || (bb >= 1.0)) {
-    e->cosh_length = INFINITY;
-    e->sinh_length = INFINITY;
-    printf("Long edge found.\n");
-  } else {
-    e->cosh_length = ((1 + aa)*(1 + bb) - 4*a*b*c) / 
-      ((1 - aa)*(1 - bb));
-    if (e->cosh_length == 1.0) {
-      printf("0 length edge found.\n");
-    }
-    e->sinh_length = sqrt(e->cosh_length * e->cosh_length - 1);
+  e->cosh_length_minus1 = (2 * (aa + bb) - 4*a*b*c) / 
+    ((1 - aa)*(1 - bb));
+  e->sinh_length = sqrt(2 * e->cosh_length_minus1 
+      + e->cosh_length_minus1 * e->cosh_length_minus1);
 #ifdef DEBUG_MODE
-    if ((!is_number(e->cosh_length)) || (!is_number(e->sinh_length))) {
-      printf("NaN found in calc_edge_length.\n");
-    }
-#endif
+  if ((!is_number(e->cosh_length_minus1)) || (!is_number(e->sinh_length))) {
+    printf("NaN found in calc_edge_length.\n");
   }
+#endif
+  return e->cosh_length_minus1;
 }
 
 void calc_boundary_lengths(mesh* m)
@@ -935,12 +965,292 @@ void calc_boundary_lengths(mesh* m)
     length = 0;
     j = m->boundary_cycles[i].begin();
     for(; j != m->boundary_cycles[i].end(); j++) {
-      length += acosh((*j)->cosh_length);
+      length += acosh(1.0 + (*j)->cosh_length_minus1);
     }
     m->boundary_lengths[i] = length;
   }
 }
 
+/* Look for edges shorter than edge_length_threshold and
+ * collapse them.
+ */
+void collapse_short_edges(mesh* m)
+{
+  int* vertex_map = new int[m->ranks[0]];
+  int** inverse_map;
+  double* s = new double[m->ranks[0]];
+  int** edge_incidences;
+  double** edge_angles;
+  int original_number_of_vertices = m->ranks[0];
+  initialize_double_arrays_of_edges(&edge_incidences, &edge_angles,
+      &inverse_map, original_number_of_vertices);
+  record_edge_angles(m, edge_incidences, edge_angles);
+  record_vertex_radii(m, s);
+  construct_vertex_equivalence_relation(m, vertex_map);
+  construct_inverse_vertex_map(m, vertex_map, inverse_map);
+  remap_collapsed_triangles(m, vertex_map); 
+
+  construct_simplices(m, m->fd);
+  sort_cyclic_order_at_vertices(m);
+  add_wings_to_bivalent_vertices(m, edge_incidences, edge_angles);
+  remove_isolated_vertices(m, m->fd);
+  sort_cyclic_order_at_vertices(m);
+  add_link_edges(m);
+  clear_boundary_data(m);
+  calc_boundaries(m);
+  construct_vertex_hessian_pointers(m);
+  construct_vertex_inner_angle_pointers(m);
+  copy_radii_and_angle_data(m, inverse_map, s, edge_incidences, edge_angles);
+  delete [] vertex_map;
+  delete [] s;
+  deallocate_double_arrays_of_edges(edge_incidences, edge_angles, 
+      inverse_map, original_number_of_vertices);
+}
+
+void add_wings_to_bivalent_vertices(mesh* m, int** edge_incidences, 
+    double** edge_angles)
+{
+  face* face_node = m->fd->face_head;
+  while (face_node->next != NULL) {
+    face_node = face_node->next;
+  }
+  for (int i=0; i<m->ranks[0]; ++i) {
+    vertex* v = &(m->vertices[i]);
+    if (v->degree == 2) {
+      int vi[4];
+      get_boundary_adjacent_vertices(v, vi);
+      ++(m->vertices[vi[0]].degree); // to prevent nearby bivalent conflicts
+      ++(m->vertices[vi[3]].degree);
+      face_node = add_face_node(face_node, v->index, vi[0], vi[1]);
+      face_node = add_face_node(face_node, v->index, vi[2], vi[3]);
+      m->fd->number_of_triangles += 2;
+      add_pi_edge(edge_incidences, edge_angles, v->index, vi[0]);
+      add_pi_edge(edge_incidences, edge_angles, v->index, vi[3]);
+    }
+  }
+  construct_simplices(m, m->fd);
+  sort_cyclic_order_at_vertices(m);
+}
+
+void get_boundary_adjacent_vertices(vertex* v, int* vi)
+{
+  vertex* v1 = v->incident_vertices[0];
+  vertex* v2 = v->incident_vertices[1];
+  vi[1] = v1->index;
+  vi[2] = v2->index;
+  vi[0] = v1->incident_vertices[0]->index;
+  vi[3] = v2->incident_vertices[v2->degree - 1]->index;
+}
+
+void add_pi_edge(int** ei, double** ea, int v0, int v1)
+{
+  int i=0;
+  while (ei[v0][i] != -1) ++i;
+  ei[v0][i] = v1;
+  ea[v0][i] = -1;
+  i=0;
+  while (ei[v1][i] != -1) ++i;
+  ei[v1][i] = v0;
+  ea[v1][i] = -1;
+}
+
+void clear_boundary_data(mesh* m)
+{
+  free(m->boundary_edges);
+  for (int i=0; i<m->boundary_count; ++i) {
+    m->boundary_cycles[i].clear();
+  }
+}
+void initialize_double_arrays_of_edges(int*** ei, double*** ea, 
+    int*** im, int n)
+{
+  *ei = new int*[n];
+  *ea = new double*[n];
+  *im = new int*[n];
+  for (int i=0; i<n; ++i) {
+    (*ei)[i] = new int[max_degree];
+    for (int j=0; j<max_degree; ++j) {
+      (*ei)[i][j] = -1;
+    }
+    (*ea)[i] = new double[max_degree];
+    (*im)[i] = new int[max_degree];
+  }
+}
+
+void deallocate_double_arrays_of_edges(int** ei, double** ea, 
+    int** im, int n)
+{
+  for (int i=0; i<n; ++i) {
+    delete [] ei[i];
+    delete [] ea[i];
+    delete [] im[i];
+  }
+  delete [] ei;
+  delete [] ea;
+  delete [] im;
+}
+
+void record_edge_angles(mesh* m, int** ei, double** ea)
+{
+  for(int i=0; i<m->ranks[0]; ++i) {
+    vertex* v = &(m->vertices[i]);
+    for(int j=0; j<v->degree; ++j) {
+      vertex* v1 = v->incident_vertices[j];
+      edge* e = v->incident_edges[j];
+      ei[i][j] = v1->index;
+      ea[i][j] = e->cos_angle;
+    }
+    ei[i][v->degree] = -1;
+  }
+}
+
+void record_vertex_radii(mesh* m, double* s)
+{
+  for(int i=0; i<m->ranks[0]; ++i) {
+    vertex* v = &(m->vertices[i]);
+    s[i] = v->s;
+  }
+}
+
+void construct_vertex_equivalence_relation(mesh* m, int* vertex_map)
+{
+  for (int i=0; i<m->ranks[0]; ++i) {
+    vertex_map[i] = -1;
+  }
+  for (int i=0; i<m->ranks[0]; ++i) {
+    vertex* v = &(m->vertices[i]);
+    if (vertex_map[i] == -1) {
+      vertex_map[i] = i;
+    }
+    for (int j=0; j<v->degree; ++j) {
+      edge* e = v->incident_edges[j];
+      if (e->cosh_length_minus1 < edge_length_threshold) {
+        vertex* opposite_v = get_other_vertex(e, v);
+        if (opposite_v->index > v->index) {
+          vertex_map[opposite_v->index] = vertex_map[v->index];
+        }
+      }     
+    }
+  }
+}
+
+void construct_inverse_vertex_map(mesh* m, int* vertex_map, int** inverse_map)
+{
+  int position = 0;
+  for (int i=0; i<m->ranks[0]; ++i) {
+    inverse_map[i][0] = 0;  // this slot records the number of inverse points
+  }
+  for (int i=0; i<m->ranks[0]; ++i) {
+    if (vertex_map[i] == i) {
+      int count = 0;
+      for (int j = i; j<m->ranks[0]; ++j) {
+        if (vertex_map[j] == i) {
+          inverse_map[position][count+1] = j;
+          ++count;
+        }
+      }
+      inverse_map[position][0] = count;
+      ++position;
+    }
+  }
+}
+
+void remap_collapsed_triangles(mesh* m, int* vertex_map)
+{
+  face* face_head = (face*)malloc(sizeof(face));
+  face_head->next = NULL;
+  face* face_node = face_head;
+  int number_of_triangles = 0;
+  for (int i=0; i<m->ranks[2]; ++i) {
+    triangle* t = &(m->triangles[i]);
+    int count = count_collapsed_edges(t);
+#ifdef DEBUG_MODE
+    if (count == 2) {
+      printf("Only two collapsed edges in a triangle!\n");
+    }
+#endif
+    if (count == 0) {
+      ++number_of_triangles;
+      int v[3];
+      for (int j=0; j<3; ++j) {
+        v[j] = vertex_map[t->vertices[j]->index];
+      }
+      face_node = add_face_node(face_node, v[0], v[1], v[2]); 
+    }
+  }
+  deallocate_face(m->fd->face_head);
+  m->fd->face_head = face_head;
+  m->fd->number_of_triangles = number_of_triangles;
+}
+
+int count_collapsed_edges(triangle* t)
+{
+  int count = 0;
+  for (int i=0; i<3; ++i) {
+    edge* e = t->edges[i];
+    if (e->cosh_length_minus1 < edge_length_threshold) {
+      ++count;
+    }
+  }
+  return count;
+}
+
+void copy_radii_and_angle_data(mesh* m, int** inverse_map, 
+    double* s, int** edge_incidences, double** edge_angles)
+{
+  for (int i=0; i<m->ranks[0]; ++i) {
+    vertex* v = &(m->vertices[i]);
+    int index = inverse_map[i][1];
+    if (s[index] > radii_threshold) {
+      v->s = s[index];
+    } else {
+      v->s = radii_threshold;
+    }
+  }
+  for (int i=0; i<m->ranks[1]; ++i) {
+    edge* e = &(m->edges[i]);
+    int i0 = e->vertices[0]->index;
+    int i1 = e->vertices[1]->index;
+    e->cos_angle = find_inverse_edge_angle(i0, i1, inverse_map,
+        edge_incidences, edge_angles);
+  }
+}
+
+double find_inverse_edge_angle(int i0, int i1, int** inverse_map,
+    int** ei, double** ea)
+{
+  double angle = 0;
+  double min_angle = 1;
+  int n = inverse_map[i0][0];
+  int m = inverse_map[i1][0];
+  int* list0 = &(inverse_map[i0][1]);
+  int* list1 = &(inverse_map[i1][1]);
+  for (int i=0; i<n; ++i) {
+    for (int j=0; j<m; ++j) {
+      int k0 = list0[i];
+      int k1 = list1[j];
+      int pos = find_old_edge_position(ei, k0, k1);
+      if (pos != -1) {
+        angle = ea[k0][pos];
+        if (angle < min_angle) {
+          min_angle = angle;
+        }
+      }
+    }
+  }
+  if (min_angle > 0) {
+    printf("Error finding edge angle.\n");
+  }
+  return min_angle;
+}
+
+int find_old_edge_position(int** ei, int k0, int k1)
+{
+  for (int i=0; i<max_degree; ++i) {
+    if (ei[k0][i] == k1) return i;
+    if (ei[k0][i] == -1) return -1;
+  }
+}
 /* Calculates the the negative of the Hessian matrix [dK_i / du_j], given 
  * that edge angles and radius parameters are set.
  */
@@ -1040,7 +1350,7 @@ void calc_dtheta_dl(triangle *t, double A[3][3])
   double cosh_l[3], sinh_l[3];
   int i, j, k, j1, j2;
   for (i=0; i<3; i++) {
-    cosh_l[i] = ((edge *)t->edges[i])->cosh_length;
+    cosh_l[i] = 1.0 + ((edge *)t->edges[i])->cosh_length_minus1;
     sinh_l[i] = ((edge *)t->edges[i])->sinh_length;
   }
   for (i=0; i<3; i++) {
@@ -1055,6 +1365,11 @@ void calc_dtheta_dl(triangle *t, double A[3][3])
         sinh_l[j];
       d2 = cosh_l[k] / sinh_l[k];
       A[i][j] = (d1 - d2) / t->sin_angles[i];
+#ifdef DEBUG_MODE
+      if (!is_number(d1) || !is_number(d2) || !is_number(A[i][j]) || !is_number(A[i][i])) {
+        printf("NaN found in calc_dtheta_dl.\n");
+      }
+#endif
     }
   }
 }
@@ -1069,7 +1384,7 @@ void calc_dl_ds(triangle *t, double A[3][3])
   double s[3], cos_e[3], cosh_l[3], sinh_l[3];
   for (i=0; i<3; i++) {
     s[i] = ((vertex *)t->vertices[i])->s;
-    cosh_l[i] = ((edge *)t->edges[i])->cosh_length;
+    cosh_l[i] = 1.0 + ((edge *)t->edges[i])->cosh_length_minus1;
     sinh_l[i] = ((edge *)t->edges[i])->sinh_length;
     cos_e[i] = ((edge *)t->edges[i])->cos_angle;
   }
@@ -1316,7 +1631,7 @@ void print_edge(edge *e)
     t2 = ((triangle *)t)->index;
     printf("V:[%i, %i]  T:[%i, %i]", v1, v2, t1, t2);
   }
-  printf(" (Cos(A), Cosh(L)) = (%f, %f)\n", e->cos_angle, e->cosh_length);
+  printf(" (Cos(A), Cosh(L)) = (%f, %f)\n", e->cos_angle, 1.0 + e->cosh_length_minus1);
 }
 
 void print_triangle(triangle *t)

@@ -25,19 +25,28 @@ void run_ricci_flow(mesh *m)
 {
   ricci_solver r;
   ricci_config rc;
-  initialize_ricci_solver(&r, m, &rc);
-  calc_flat_metric(&r);
-  deallocate_ricci_solver(&r);
+  bool ricci_complete = false;
+  while (!ricci_complete) {
+    try {
+      initialize_ricci_solver(&r, m, &rc);
+      calc_flat_metric(&r);
+      ricci_complete = true;
+    }
+    catch(double e) {
+      printf("Edge collapse detected. Recomputing mesh.\n");
+      collapse_short_edges(m);
+    }
+  }
   calc_boundary_lengths(m);
 }
 
 void initialize_ricci_solver(ricci_solver *r, mesh *m, ricci_config *rc)
 {
   // set default configuration settings
-  rc->verbose = 2; // set to 2 for updates every iteration, 0 for no output
+  rc->verbose = 3; // set to 2 for updates every iteration, 0 for no output
   rc->integration_precision = 30; // number of subdivisions for simpson's integration
-  rc->relative_error = 1.0e-9;
-  rc->absolute_error = 1.0e-9;
+  rc->relative_error = 1.0e-11;
+  rc->absolute_error = 1.0e-11;
   rc->wolfe_c1= 1.0e-4;
   rc->wolfe_c2 = 0.9;
   rc->strong_wolfe = 0;  // 0 for regular Wolfe conditions, 1 for strong

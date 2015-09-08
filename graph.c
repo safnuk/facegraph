@@ -134,7 +134,7 @@ void create_active_list(mesh *m, int b, std::list<vertex*>& active)
     v->shortest_paths[b].assign_values(b, 0, position, M_PI_2);
     calc_vertex_config(v, v->shortest_paths[b], true);
     active.push_back(v);
-    position += acosh(e->cosh_length);
+    position += acosh(1.0 + e->cosh_length_minus1);
   }
   return;
 }
@@ -303,10 +303,11 @@ void calc_next_vertex_geodesic(mesh* m, vertex* v, int k, geodesic& g,
     sign = -1;
     alpha = 2 * M_PI - alpha;
   }
-  g.length = asinh(sinh(path.length) * e->cosh_length - cosh(path.length) *
-           e->sinh_length * cos(alpha) );
-  offset = acosh((sinh(g.length) * sinh(path.length) + e->cosh_length ) /
-      (cosh(g.length) * cosh(path.length)));
+  g.length = asinh(sinh(path.length) * (1.0 + e->cosh_length_minus1) 
+      - cosh(path.length) * e->sinh_length * cos(alpha) );
+  offset = acosh((sinh(g.length) * sinh(path.length) 
+        + (1.0 + e->cosh_length_minus1) ) 
+        / (cosh(g.length) * cosh(path.length)));
   beta = acos(-1 * cos(alpha) * cosh(offset)
       + sin(alpha) * sinh(offset) * sinh(path.length));
   offset *= sign;
