@@ -1,5 +1,8 @@
 // geodesic.h
 
+#include <cstddef>
+#include <stdio.h>
+
 struct vertex;
 
 /* struct which records the configuration of a geodesic from 
