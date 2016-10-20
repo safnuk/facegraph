@@ -1,5 +1,6 @@
-/* cricci.h
- */
+// cricci.h
+#ifndef Ricci
+#define Ricci
 
 typedef enum {
   TOO_MANY_ITERATIONS = -100,
@@ -68,3 +69,4 @@ void print_ricci_status(ricci_solver *r);
 
 double sup_norm(const MV_Vector_double &x);
 int vector_in_bounds(const MV_Vector_double &v, double min, double max);
+#endif

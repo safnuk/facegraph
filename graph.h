@@ -1,4 +1,7 @@
 // graph.h
+#ifndef Graph
+#define Graph
+
 const int kVertexActive = 1;
 const int kVertexNotActive = 0;
 const double kErrorThreshold = 1e-9;
@@ -74,3 +77,5 @@ int calc_half_edge_index(int boundary, double position,
 
 void print_ribbon_graph(ribbon_graph const* gamma);
 void print_geodesic_list(vertex const* v);
+
+#endif

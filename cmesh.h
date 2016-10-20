@@ -1,4 +1,6 @@
 // cmesh.h
+#ifndef Mesh
+#define Mesh
 
 
 #define max_degree  15
@@ -237,3 +239,4 @@ void print_edge(edge *e);
 void print_triangle(triangle *t);
 
 bool is_number(double x);
+#endif

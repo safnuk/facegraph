@@ -1,4 +1,6 @@
 // geodesic.h
+#ifndef Geodesic
+#define Geodesic
 
 #include <cstddef>
 #include <stdio.h>
@@ -107,3 +109,4 @@ geodesic average(const std::list<geodesic>& g);
 geodesic std_dev(const std::list<geodesic>& g);
 geodesic sqrt(const geodesic &g);
 
+#endif

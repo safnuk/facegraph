@@ -1,4 +1,6 @@
 // ccirclepack.h
+#ifndef CirclePack
+#define CirclePack
 
 typedef struct {
   double error;
@@ -60,3 +62,5 @@ static int quiet_progress(
     int k,
     int ls
     );
+
+#endif

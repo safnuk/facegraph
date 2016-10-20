@@ -1,4 +1,6 @@
 // partition.h
+#ifndef Partition
+#define Partition
 
 struct vertex;
 
@@ -22,3 +24,5 @@ void calc_dl_ddelta(double const* alphas, double delta,
     vertex_params const* p, double const* d, double* dl_ddelta);
 void calc_vertex_params(vertex const* v, vertex_params* p);
 void calc_sort_order(vertex const* v, geodesic* g);
+
+#endif

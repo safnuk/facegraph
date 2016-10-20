@@ -1,4 +1,6 @@
 // spherefit.h
+#ifndef SphereFit
+#define SphereFit
 
 struct sphere_data {
   size_t n;
@@ -11,5 +13,4 @@ void iterate_sphere_solver(s);
 void print_final_sphere_status(s);
 void print_sphere_state(s);
 
-
-
+#endif

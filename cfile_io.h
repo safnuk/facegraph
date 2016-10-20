@@ -1,4 +1,6 @@
 // cfile_io.h
+#ifndef FileIO
+#define FileIO
 
 
 /* Data structure for a linked list of point coordinates.
@@ -39,3 +41,5 @@ void deallocate_filedata(filedata *data);
 void deallocate_point(_point *head);
 void deallocate_face(face *head);
 void print_filedata(filedata *data);
+
+#endif
