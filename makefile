@@ -5,7 +5,9 @@ CFLAGS = -ansi -pedantic  '-DCOMPLEX=std::complex<double>' \
 	-I/usr/local/include
 LFLAGS = -ansi -pedantic  '-DCOMPLEX=std::complex<double>' \
 	SparseLib++/lib/libsparse.a SparseLib++/lib/libspblas.a SparseLib++/lib/libmv.a \
-	-L/usr/local/lib -llbfgs -lgsl -lgslcblas
+	-L/usr/local/lib -llbfgs -lgsl -lgslcblas -lm
+
+SPARSE_LIB_DIR = SparseLib++
 
 HEADERS = \
 	   cricci.h		\
@@ -30,8 +32,11 @@ OBJS =  \
 	   geodesic.o		\
 	   cmesh.o
 
-main : $(OBJS)
+main : $(OBJS) sparselib
 	$(CC) $(DEBUG) $(LFLAGS) $(OBJS) -o main
+
+sparselib :
+	$(MAKE) -C $(SPARSE_LIB_DIR) sp
 
 cmain.o : cmain.c $(HEADERS)
 	$(CC) $(DEBUG) $(CFLAGS) -c cmain.c
