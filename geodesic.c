@@ -4,6 +4,8 @@
 
 #include "geodesic.h"
 
+using namespace std;
+
 geodesic average(const std::list<geodesic>& g)
 {
   geodesic result;

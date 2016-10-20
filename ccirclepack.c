@@ -15,6 +15,7 @@
 #include "cmesh.h"
 #include "ccirclepack.h"
 
+using namespace std;
 
 /* Note: lbfgsfloatval_t is a double type.
  *

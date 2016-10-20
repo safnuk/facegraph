@@ -22,6 +22,8 @@
 #include "mesh_improver.h"
 #include "ccirclepack.h"
 
+using namespace std;
+
 const double edge_length_threshold = 1e-15;
 const double radii_threshold = 1e-12;
 

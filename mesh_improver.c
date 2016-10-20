@@ -17,6 +17,8 @@
 
 #include "mesh_improver.h"
 
+using namespace std;
+
 /* Code looks for vertices which prevent Ricci flow convergence
  * and subdivides the adjacent triangles to increase the triangle
  * edge angles.

@@ -21,6 +21,8 @@
 #include "partition.h"
 #include "graph.h"
 
+using namespace std;
+
 
 void calc_cutlocus_graph(mesh* m, ribbon_graph* gamma)
 {

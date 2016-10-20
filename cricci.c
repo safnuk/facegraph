@@ -21,6 +21,8 @@
 #include "cconj_grad.h"
 #include "cricci.h"
 
+using namespace std;
+
 void run_ricci_flow(mesh *m)
 {
   ricci_solver r;

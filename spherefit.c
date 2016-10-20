@@ -8,6 +8,8 @@
 #include <gsl/gsl_blas.h>
 #include <gsl/gsl_multifit_nlin.h>
 
+using namespace std;
+
 void fit_points_to_sphere(point* points, int n) 
 {
   const gsl_multifit_fdfsolver_type* T;

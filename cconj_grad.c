@@ -7,6 +7,7 @@
 #include <math.h>
 #include "cconj_grad.h"
 
+using namespace std;
 /*
 int B(double *x, double *y, int n, void* instance)
 {

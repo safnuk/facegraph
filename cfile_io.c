@@ -19,6 +19,7 @@
 #include "cmesh.h"
 
 
+using namespace std;
 
 /* Read face data from filename, and store it in data.
  * Assumes that data has been properly initialized.

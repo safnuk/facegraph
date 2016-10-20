@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include "csimpson.h"
 
+using namespace std;
+
 /*
 double g(double x, void *instance)
 {

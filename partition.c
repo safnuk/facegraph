@@ -22,6 +22,8 @@
 #include "graph.h"
 #include "partition.h"
 
+using namespace std;
+
 const double kStepSize = 1e-4;
 const double kTol = 1e-6;
 const double kErrTol = 1e-6;
