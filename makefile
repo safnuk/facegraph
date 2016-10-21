@@ -1,13 +1,14 @@
 CC = g++
 DEBUG = -ggdb
+SPARSE_LIB_DIR = SparseLib++
+
 CFLAGS = -ansi -pedantic  '-DCOMPLEX=std::complex<double>' \
-	-IIML++ -ISparseLib++/include -ISparseLib++/mv/include \
+	-IIML++ -I$(SPARSE_LIB_DIR)/include -I$(SPARSE_LIB_DIR)/mv/include \
 	-I/usr/local/include
 LFLAGS = -ansi -pedantic  '-DCOMPLEX=std::complex<double>' \
-	SparseLib++/lib/libsparse.a SparseLib++/lib/libspblas.a SparseLib++/lib/libmv.a \
-	-L/usr/local/lib -llbfgs -lgsl -lgslcblas -lm
+	$(SPARSE_LIB_DIR)/lib/libsparse.a $(SPARSE_LIB_DIR)/lib/libspblas.a $(SPARSE_LIB_DIR)/lib/libmv.a \
+	-llbfgs -lgsl -lgslcblas -lm
 
-SPARSE_LIB_DIR = SparseLib++
 
 HEADERS = \
 	   cricci.h		\
@@ -38,32 +39,32 @@ main : $(OBJS) sparselib
 sparselib :
 	$(MAKE) -C $(SPARSE_LIB_DIR) sp
 
-cmain.o : cmain.c $(HEADERS)
-	$(CC) $(DEBUG) $(CFLAGS) -c cmain.c
+cmain.o : cmain.cc $(HEADERS)
+	$(CC) $(DEBUG) $(CFLAGS) -c cmain.cc
 
-partition.o : partition.c $(HEADERS)
-	$(CC) $(DEBUG) $(CFLAGS) -c partition.c
+partition.o : partition.cc $(HEADERS)
+	$(CC) $(DEBUG) $(CFLAGS) -c partition.cc
 
-cricci.o : cricci.c $(HEADERS)
-	$(CC) $(DEBUG) $(CFLAGS) -c cricci.c
+cricci.o : cricci.cc $(HEADERS)
+	$(CC) $(DEBUG) $(CFLAGS) -c cricci.cc
 
-mesh_improver.o : mesh_improver.c $(HEADERS)
-	$(CC) $(DEBUG) $(CFLAGS) -c mesh_improver.c
+mesh_improver.o : mesh_improver.cc $(HEADERS)
+	$(CC) $(DEBUG) $(CFLAGS) -c mesh_improver.cc
 
-ccirclepack.o : ccirclepack.c $(HEADERS)
-	$(CC) $(DEBUG) $(CFLAGS) -c ccirclepack.c
+ccirclepack.o : ccirclepack.cc $(HEADERS)
+	$(CC) $(DEBUG) $(CFLAGS) -c ccirclepack.cc
 
-cfile_io.o : cfile_io.c $(HEADERS)
-	$(CC) $(DEBUG) $(CFLAGS) -c cfile_io.c
+cfile_io.o : cfile_io.cc $(HEADERS)
+	$(CC) $(DEBUG) $(CFLAGS) -c cfile_io.cc
 
-csimpson.o : csimpson.c $(HEADERS)
-	$(CC) $(DEBUG) $(CFLAGS) -c csimpson.c
+csimpson.o : csimpson.cc $(HEADERS)
+	$(CC) $(DEBUG) $(CFLAGS) -c csimpson.cc
 
-graph.o : graph.c $(HEADERS)
-	$(CC) $(DEBUG) $(CFLAGS) -c graph.c
+graph.o : graph.cc $(HEADERS)
+	$(CC) $(DEBUG) $(CFLAGS) -c graph.cc
 
-geodesic.o : geodesic.c $(HEADERS)
-	$(CC) $(DEBUG) $(CFLAGS) -c geodesic.c
+geodesic.o : geodesic.cc $(HEADERS)
+	$(CC) $(DEBUG) $(CFLAGS) -c geodesic.cc
 
-cmesh.o : cmesh.c $(HEADERS)
-	$(CC) $(DEBUG) $(CFLAGS) -c cmesh.c
+cmesh.o : cmesh.cc $(HEADERS)
+	$(CC) $(DEBUG) $(CFLAGS) -c cmesh.cc
